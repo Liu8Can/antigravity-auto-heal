@@ -1,0 +1,23 @@
+{
+  "name": "antigravity-auto-heal",
+  "version": "2.28.0",
+  "description": "Zero-touch self-healing & autonomous harvesting localization architecture for Google Antigravity",
+  "main": "tool/auto-heal.js",
+  "scripts": {
+    "heal": "node tool/auto-heal.js",
+    "build": "node tool/builder.js",
+    "harvest": "python tool/harvester.py",
+    "check": "node --check tool/auto-heal.js && node --check tool/builder.js && node --check tool/runtime/engine.js && node --check tool/runtime/main-hook.js"
+  },
+  "keywords": [
+    "antigravity",
+    "localization",
+    "i18n",
+    "auto-heal",
+    "electron",
+    "mutation-observer",
+    "deepmind"
+  ],
+  "author": "Liu8Can",
+  "license": "MIT"
+}
