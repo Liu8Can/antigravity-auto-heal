@@ -23,22 +23,22 @@
 
 ```mermaid
 flowchart TD
-    subgraph 启动自愈阶段 [启动自愈层 - auto-heal.js]
-        A["用户启动 Antigravity"] --> B{"检测主程序 app.asar 是否包含汉化标记"}
-        B -- "已汉化 & 无待更新词条" --> C["毫秒级直启主程序"]
-        B -- "官方刚刚静默更新覆盖 (纯英文)" --> D["防御 1: 立即将官方全新文件同步为 app.asar.bak (原生母本)"]
-        D --> E["解包纯净母本 (自动挂载 companion junction)"]
-        E --> F["防御 2: 注入 engine.js 与 main-hook.js (带严格幂等查重)"]
-        F --> G["防御 3: 打包前强制执行语法门禁 (node --check)"]
-        G -- "语法存在错误" --> H["🚨 立即熔断退出, 严禁覆盖, 保持主文件安全"]
-        G -- "语法 100% 通过" --> I["重新打包并安全覆盖 app.asar -> 启动程序"]
+    subgraph S1["【启动自愈层】 auto-heal.js"]
+        A["用户启动 Antigravity"] --> B{"检测主程序 app.asar<br/>是否包含汉化标记"}
+        B -->|"已汉化 (正常启动)"| C["毫秒级直启主程序"]
+        B -->|"检测到官方更新覆盖"| D["【防御 1】同步刷新母本<br/>app.asar -> app.asar.bak"]
+        D --> E["解包官方纯净母本<br/>(自动挂载 companion 链接)"]
+        E --> F["【防御 2】幂等安全注入<br/>engine.js 与 main-hook.js"]
+        F --> G{"【防御 3】语法编译门禁<br/>node --check 全量校验"}
+        G -->|"校验发现错误"| H["🚨 立即熔断中止<br/>放弃覆盖，保护主程序安全"]
+        G -->|"校验 100% 通过"| I["重新打包并安全覆盖<br/>正常拉起汉化版主程序"]
     end
 
-    subgraph 后台自进化阶段 [自进化采掘层 - harvester.py]
-        I -. "后台静默触发" .-> J["提取新版新增 UI 字符串"]
-        J --> K["专业术语库对齐 + 代理翻译"]
-        K --> L["增量合并进 runtime/engine.js 并验证语法"]
-        L --> M["生成 .new_words_ready 标记，等待下次启动自动热编译"]
+    subgraph S2["【后台自进化层】 harvester.py"]
+        I -.->|"后台静默派生"| J["提取新版新增 UI 字符串"]
+        J --> K["专业工程术语库对齐<br/>+ 智能翻译转换"]
+        K --> L["增量合入本地词典库<br/>并通过 AST 语法校验"]
+        L --> M["生成 .new_words_ready 标记<br/>待下次启动无感热升级"]
     end
 ```
 
