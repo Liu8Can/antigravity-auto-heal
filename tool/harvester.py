@@ -19,11 +19,11 @@ WORK_DIR = os.path.join(TOOL_DIR, 'harvester_work')
 MARKER_FILE = os.path.join(TOOL_DIR, '.new_words_ready')
 LOG_FILE = os.path.join(TOOL_DIR, 'harvester.log')
 
-proxy_url = os.environ.get('HTTP_PROXY') or os.environ.get('http_proxy') or 'http://127.0.0.1:7897'
+proxy_url = os.environ.get('HTTP_PROXY') or os.environ.get('http_proxy') or os.environ.get('ALL_PROXY')
 PROXIES = {
     'http': proxy_url,
     'https': proxy_url
-}
+} if proxy_url else None
 
 # Authoritative Developer Glossary (ensures industry-standard software engineering terms)
 DEV_GLOSSARY = {
