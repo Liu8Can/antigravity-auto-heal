@@ -1,0 +1,26 @@
+# Node / Electron
+node_modules/
+package-lock.json
+
+# Asar archives and unpacked companion directories
+*.asar
+*.asar.unpacked
+app*.asar*
+
+# Build and worker temp directories
+build_work/
+heal_work/
+harvester_work/
+scan_test/
+*.tmp
+*.bak
+
+# Logs and runtime markers
+*.log
+.new_words_ready
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
