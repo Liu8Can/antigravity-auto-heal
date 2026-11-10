@@ -3564,7 +3564,48 @@
     "Windows Subsystem for Linux": "适用于 Linux 的 Windows 子系统",
     "Run the app against a Linux environment. Connecting relaunches the app into the selected WSL distro.": "在 Linux 环境中运行应用。连接后会将应用重新启动到所选的 WSL 发行版。",
 
+    // ===== 2.30.0 补充：内置浏览器、设备选择器与安全证书弹窗 =====
+    "Connect a device": "连接设备",
+    "Select a device:": "请选择一个设备：",
+    "No compatible devices found.": "未找到兼容的设备。",
+    "HID device": "HID 设备",
+    "USB device": "USB 设备",
+    "Unknown device": "未知设备",
+    "Select Download Folder": "选择下载文件夹",
+    "Download Folder": "下载文件夹",
+    "Default Download Folder": "默认下载文件夹",
+    "Connection info": "连接信息",
+    "Connection info…": "连接信息…",
+    "Connection is secure": "连接安全",
+    "Not secure": "不安全",
+    "⚠ Not secure": "⚠ 不安全",
+    "Certificate is valid": "证书有效",
+    "Certificate details": "证书详情",
+    "Your connection to this site is not secure": "您与此网站的连接不安全",
+    "Connection security information is not available for this page": "此页面暂无连接安全信息",
+    "External Browser": "外部浏览器",
+    "System Default Browser": "系统默认浏览器",
+    "Open in Built-in Browser": "在内置浏览器中打开",
+    "Open in External Browser": "在外部浏览器中打开",
+
   };
+
+  // 通过主进程 IPC 动态加载外部增量词库 (无需重打包 app.asar 即可实时读取新词)
+  let _ipcRenderer = null;
+  try {
+    const _elec = typeof require === 'function' ? require('electron') : null;
+    if (_elec && _elec.ipcRenderer) {
+      _ipcRenderer = _elec.ipcRenderer;
+      const customDict = _ipcRenderer.sendSync('i18n:get-custom-dict');
+      if (customDict && typeof customDict === 'object') {
+        for (const k of Object.keys(customDict)) {
+          if (customDict[k] && typeof customDict[k] === 'string' && !dictionary[k]) {
+            dictionary[k] = customDict[k];
+          }
+        }
+      }
+    }
+  } catch (_) {}
 
   const coreWords = {
     "create": "创建", "delete": "删除", "new": "新建", "edit": "编辑", "save": "保存", "cancel": "取消", "confirm": "确认", "copy": "复制",
@@ -4978,6 +5019,58 @@
   // 性能优化 3：已处理文本节点记忆化 WeakSet，消除父容器重绘时的重复遍历
   const translatedNodes = new WeakSet();
 
+  // 零污染静态 UI 未翻译词条采集器 (仅采集按钮/菜单/设置标签，严格过滤文件名/模型名/动态内容)
+  const _reportedUIWords = new Set();
+  const _pendingUIWords = new Set();
+  let _reportTimer = null;
+  const _UI_TAGS = new Set(['BUTTON', 'LABEL', 'TH', 'LEGEND', 'SUMMARY', 'OPTION', 'H1', 'H2', 'H3', 'H4']);
+  const _UI_ROLES = new Set(['menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'button', 'switch', 'option', 'heading']);
+  const _PROPER_NOUN_BLACKLIST = /\b(Gemini|Claude|GPT|Anthropic|OpenAI|Google|Antigravity|Argon|Sonnet|Opus|Haiku|Flash|Pro|Nano|Ultra|WSL|Ubuntu|Debian|Windows|macOS|Linux|Git|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Chrome|Firefox|Safari|Edge|JSON|YAML|TOML|HTML|CSS|MCP|API|SDK|CLI|SSH|URL|URI|HTTP|HTTPS|OAuth|CitC|VCS|UUID|UTF|ASCII)\b/i;
+
+  function maybeReportUntranslatedUI(element, rawText) {
+    if (!_ipcRenderer || !element || !rawText) return;
+    const trimmed = rawText.trim();
+    if (trimmed.length < 3 || trimmed.length > 75) return;
+    if (_reportedUIWords.has(trimmed)) return;
+    // 必须以大写英文字母开头，包含小写字母，且仅含标准英文 UI 字符（不含路径斜杠、下划线、文件后缀点号连接等）
+    if (!/^[A-Z][a-zA-Z\s,.:?!'’()/&-…]+$/.test(trimmed)) return;
+    if (!/[a-z]/.test(trimmed)) return;
+    if (/\.[a-zA-Z0-9]{1,5}\b/.test(trimmed)) return; // 排除文件名如 main.js
+    const words = trimmed.split(/\s+/);
+    if (words.length < 1 || words.length > 10) return;
+    if (_PROPER_NOUN_BLACKLIST.test(trimmed)) return;
+
+    // 校验 DOM 容器：必须是纯正的静态 UI 控件标签或角色
+    const tag = element.tagName;
+    const role = element.getAttribute ? element.getAttribute('role') : '';
+    const parent = element.parentElement;
+    const parentTag = parent ? parent.tagName : '';
+    const parentRole = (parent && parent.getAttribute) ? parent.getAttribute('role') : '';
+
+    const isUIControl = _UI_TAGS.has(tag) || _UI_ROLES.has(role) || _UI_TAGS.has(parentTag) || _UI_ROLES.has(parentRole);
+    if (!isUIControl) return;
+
+    // 排除聊天对话区、Markdown 渲染区、代码树与模型选择器
+    if (element.closest && element.closest('.prose, .markdown, pre, code, [data-lexical-editor], .monaco-editor, .xterm, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"]')) {
+      return;
+    }
+
+    _reportedUIWords.add(trimmed);
+    _pendingUIWords.add(trimmed);
+    if (!_reportTimer) {
+      _reportTimer = setTimeout(() => {
+        _reportTimer = null;
+        if (_pendingUIWords.size > 0) {
+          const batch = Array.from(_pendingUIWords);
+          _pendingUIWords.clear();
+          try {
+            _ipcRenderer.send('i18n:report-untranslated', batch);
+          } catch (_) {}
+        }
+      }, 4000);
+    }
+  }
+
   function translateNode(node) {
     if (!node) return;
     if (shouldSkipNode(node)) return;
@@ -4992,6 +5085,8 @@
         translatedNodes.add(node);
       } else if (!/[a-zA-Z]/.test(original)) {
         translatedNodes.add(node);
+      } else {
+        maybeReportUntranslatedUI(node.parentElement, original);
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       ['placeholder', 'title', 'aria-label', 'value'].forEach(attr => {

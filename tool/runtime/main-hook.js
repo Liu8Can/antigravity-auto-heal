@@ -1,7 +1,13 @@
-// Antigravity 2.0+ Native Main Process Hook (Menu & Dialog i18n)
+// Antigravity 2.0+ Native Main Process Hook (Menu, Dialog & Dynamic i18n IPC Bridge)
 'use strict';
 
 const electron = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+const RES_DIR = process.resourcesPath || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
+const CUSTOM_DICT_FILE = path.join(RES_DIR, 'i18n_custom_dict.json');
+const UNTRANSLATED_FILE = path.join(RES_DIR, 'i18n_untranslated.json');
 
 const menuTranslationMap = {
   'File': '文件',
@@ -68,7 +74,9 @@ const menuTranslationMap = {
   'Quit': '退出',
   'Cancel': '取消',
   'OK': '确定',
-  'No agents running': '无正在运行的智能体'
+  'No agents running': '无正在运行的智能体',
+  'Connection info…': '连接信息…',
+  'Connection info': '连接信息'
 };
 
 const dialogTextMap = {
@@ -77,19 +85,60 @@ const dialogTextMap = {
   'There may be agents or background tasks running.': '可能有智能体或后台任务正在运行。',
   'WSL distro not found': '未找到 WSL 发行版',
   'WSL setup failed': 'WSL 配置失败',
+  'Antigravity opened on Windows instead.': 'Antigravity 已改为在 Windows 本地打开。',
   'Startup failed': '启动失败',
   'Binary not found': '未找到二进制程序',
   'Cannot open folder': '无法打开文件夹',
   'Open workspace': '打开工作区',
   'Open workspaces': '打开工作区',
+  'Select Download Folder': '选择下载文件夹',
   'Check for Updates': '检查更新',
   'No updates available': '当前已是最新版本，暂无可用更新。',
   'Folder is on the Windows filesystem': '文件夹位于 Windows 文件系统',
   'Choose a Passkey': '选择通行密钥',
   'Select a passkey account to continue:': '选择一个通行密钥账号以继续：',
   'Passkeys': '通行密钥',
-  'RPC call failed': 'RPC 调用失败'
+  'RPC call failed': 'RPC 调用失败',
+  'Connect a device': '连接设备',
+  'Select a device:': '请选择一个设备：',
+  'No compatible devices found.': '未找到兼容的设备。',
+  'HID device': 'HID 设备',
+  'USB device': 'USB 设备',
+  'Unknown device': '未知设备',
+  'Connection info': '连接信息',
+  'Connection info…': '连接信息…',
+  'This page': '此页面',
+  'Not secure': '不安全',
+  '⚠ Not secure': '⚠ 不安全',
+  'Connection is secure': '连接安全',
+  'Your information (for example, passwords or credit card numbers) is private when it is sent to this site.': '您发送至此网站的信息（例如密码或信用卡号）处于私密保护状态。',
+  'Your connection to this site is not secure': '您与此网站的连接不安全',
+  'You should not enter any sensitive information on this site (for example, passwords or credit cards), because it could be stolen by attackers.': '请勿在此网站输入任何敏感信息（例如密码或信用卡），因为这些信息可能会被攻击者窃取。',
+  'Connection security information is not available for this page': '此页面暂无连接安全信息',
+  'Certificate is valid': '证书有效',
+  'Certificate details': '证书详情'
 };
+
+// 加载外部动态增量词典 (无需重打包 app.asar 即可扩展主进程与渲染进程词库)
+function loadCustomDict() {
+  try {
+    if (fs.existsSync(CUSTOM_DICT_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CUSTOM_DICT_FILE, 'utf-8'));
+      if (data && typeof data === 'object') {
+        for (const [k, v] of Object.entries(data)) {
+          if (k && typeof v === 'string') {
+            if (!menuTranslationMap[k]) menuTranslationMap[k] = v;
+            if (!dialogTextMap[k]) dialogTextMap[k] = v;
+          }
+        }
+        return data;
+      }
+    }
+  } catch (_) {}
+  return {};
+}
+
+loadCustomDict();
 
 function translateLabel(lbl) {
   if (!lbl || typeof lbl !== 'string') return lbl;
@@ -132,11 +181,29 @@ if (electron.Menu) {
   };
 }
 
-// 2. Hook Dialog APIs
+// 2. Hook Dialog APIs (MessageBox, ErrorBox, OpenDialog, SaveDialog)
 if (electron.dialog) {
+  function translateDetailBlock(detail) {
+    if (!detail || typeof detail !== 'string') return detail;
+    if (dialogTextMap[detail]) return dialogTextMap[detail];
+    return detail.split('\n').map(line => {
+      if (dialogTextMap[line]) return dialogTextMap[line];
+      if (line.startsWith('Issued to: ')) return line.replace('Issued to: ', '颁发给：');
+      if (line.startsWith('Issued by: ')) return line.replace('Issued by: ', '颁发者：');
+      if (line.startsWith('Valid from: ')) return line.replace('Valid from: ', '生效时间：');
+      if (line.startsWith('Valid until: ')) return line.replace('Valid until: ', '过期时间：');
+      if (line.startsWith('Protocol: ')) return line.replace('Protocol: ', '协议：');
+      if (line.startsWith('Error: ')) return line.replace('Error: ', '错误：');
+      return line;
+    }).join('\n');
+  }
+
   function translateDialogOpts(opts) {
     if (!opts || typeof opts !== 'object') return;
     if (opts.title && dialogTextMap[opts.title]) opts.title = dialogTextMap[opts.title];
+    if (opts.buttonLabel && (menuTranslationMap[opts.buttonLabel] || dialogTextMap[opts.buttonLabel])) {
+      opts.buttonLabel = menuTranslationMap[opts.buttonLabel] || dialogTextMap[opts.buttonLabel];
+    }
     if (opts.message) {
       if (dialogTextMap[opts.message]) {
         opts.message = dialogTextMap[opts.message];
@@ -144,10 +211,15 @@ if (electron.dialog) {
         opts.message = opts.message.replace(/The WSL distro "([^"]+)" is no longer installed\./, 'WSL 发行版 "$1" 已不再安装。');
       } else if (opts.message.startsWith('Sign in to ')) {
         opts.message = opts.message.replace('Sign in to ', '登录到 ');
+      } else if (opts.message.includes(' wants to connect to a ')) {
+        opts.message = opts.message
+          .replace(' wants to connect to a HID device', ' 请求连接 HID 设备')
+          .replace(' wants to connect to a USB device', ' 请求连接 USB 设备')
+          .replace(' wants to connect to a ', ' 请求连接 ');
       }
     }
-    if (opts.detail && dialogTextMap[opts.detail]) {
-      opts.detail = dialogTextMap[opts.detail];
+    if (opts.detail) {
+      opts.detail = translateDetailBlock(opts.detail);
     }
     if (Array.isArray(opts.buttons)) {
       opts.buttons = opts.buttons.map(b => menuTranslationMap[b] || dialogTextMap[b] || b);
@@ -168,10 +240,78 @@ if (electron.dialog) {
     return origShowMessageBoxSync.apply(this, arguments);
   };
 
+  if (typeof electron.dialog.showOpenDialog === 'function') {
+    const origShowOpenDialog = electron.dialog.showOpenDialog;
+    electron.dialog.showOpenDialog = function(browserWindow, options) {
+      const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
+      translateDialogOpts(opts);
+      return origShowOpenDialog.apply(this, arguments);
+    };
+  }
+
+  if (typeof electron.dialog.showOpenDialogSync === 'function') {
+    const origShowOpenDialogSync = electron.dialog.showOpenDialogSync;
+    electron.dialog.showOpenDialogSync = function(browserWindow, options) {
+      const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
+      translateDialogOpts(opts);
+      return origShowOpenDialogSync.apply(this, arguments);
+    };
+  }
+
   const origShowErrorBox = electron.dialog.showErrorBox;
   electron.dialog.showErrorBox = function(title, content) {
     const t = dialogTextMap[title] || title;
     const c = dialogTextMap[content] || content;
     return origShowErrorBox.call(this, t, c);
   };
+}
+
+// 3. 主进程与渲染进程安全词库 IPC 桥接 (规避 preload 渲染沙箱无 fs 权限限制)
+const reportedWordsSet = new Set();
+let flushTimer = null;
+
+function flushUntranslatedWords() {
+  flushTimer = null;
+  if (reportedWordsSet.size === 0) return;
+  try {
+    let existing = [];
+    if (fs.existsSync(UNTRANSLATED_FILE)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(UNTRANSLATED_FILE, 'utf-8'));
+        if (!Array.isArray(existing)) existing = [];
+      } catch (_) {
+        existing = [];
+      }
+    }
+    const merged = new Set(existing);
+    let added = 0;
+    for (const w of reportedWordsSet) {
+      if (!merged.has(w) && !menuTranslationMap[w] && !dialogTextMap[w]) {
+        merged.add(w);
+        added++;
+      }
+    }
+    reportedWordsSet.clear();
+    if (added > 0 && merged.size <= 2000) {
+      fs.writeFileSync(UNTRANSLATED_FILE, JSON.stringify(Array.from(merged), null, 2), 'utf-8');
+    }
+  } catch (_) {}
+}
+
+if (electron.ipcMain) {
+  electron.ipcMain.on('i18n:get-custom-dict', (event) => {
+    event.returnValue = loadCustomDict();
+  });
+
+  electron.ipcMain.on('i18n:report-untranslated', (_event, words) => {
+    if (!Array.isArray(words)) return;
+    for (const w of words) {
+      if (typeof w === 'string' && w.length >= 2 && w.length <= 90) {
+        reportedWordsSet.add(w);
+      }
+    }
+    if (reportedWordsSet.size > 0 && !flushTimer) {
+      flushTimer = setTimeout(flushUntranslatedWords, 3000);
+    }
+  });
 }

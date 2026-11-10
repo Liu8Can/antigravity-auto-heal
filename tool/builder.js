@@ -144,12 +144,13 @@ if (fs.existsSync(trayPath)) {
   log('已注入系统托盘菜单汉化 (tray.js)');
 }
 
-// 7. Inject ipcHandlers.js, updater.js, main.js, webauthn.js
+// 7. Inject ipcHandlers.js, updater.js, main.js, webauthn.js, deviceChooser.js, webviewPopupSecurity.js
 const ipcPath = path.join(extractDir, 'dist', 'ipcHandlers.js');
 if (fs.existsSync(ipcPath)) {
   let ipc = fs.readFileSync(ipcPath, 'utf-8');
   ipc = ipc.replace("title: 'Open workspace'", "title: '打开工作区'");
   ipc = ipc.replace("title: 'Open workspaces'", "title: '打开工作区'");
+  ipc = ipc.replace("title: 'Select Download Folder'", "title: '选择下载文件夹'");
   ipc = ipc.replace("message: 'Folder is on the Windows filesystem'", "message: '文件夹位于 Windows 文件系统'");
   fs.writeFileSync(ipcPath, ipc, 'utf-8');
 }
@@ -171,6 +172,7 @@ if (fs.existsSync(mainPath)) {
   main = main.replace("detail: 'There may be agents or background tasks running.'", "detail: '可能有智能体或后台任务正在运行。'");
   main = main.replace("buttons: ['Cancel', 'Quit']", "buttons: ['取消', '退出']");
   main = main.replace("label: 'New Window'", "label: '新建窗口'");
+  main = main.replace("detail: 'Antigravity opened on Windows instead.'", "detail: 'Antigravity 已改为在 Windows 本地打开。'");
   fs.writeFileSync(mainPath, main, 'utf-8');
 }
 
@@ -183,8 +185,27 @@ if (fs.existsSync(webauthnPath)) {
   fs.writeFileSync(webauthnPath, auth, 'utf-8');
 }
 
+const devChooserPath = path.join(extractDir, 'dist', 'deviceChooser.js');
+if (fs.existsSync(devChooserPath)) {
+  let dev = fs.readFileSync(devChooserPath, 'utf-8');
+  dev = dev.replace("title: 'Connect a device'", "title: '连接设备'");
+  dev = dev.replace("'Select a device:'", "'请选择一个设备：'");
+  dev = dev.replace("'No compatible devices found.'", "'未找到兼容的设备。'");
+  dev = dev.replace("buttons: [...snapshot.map(({ label }) => label), 'Cancel']", "buttons: [...snapshot.map(({ label }) => label), '取消']");
+  fs.writeFileSync(devChooserPath, dev, 'utf-8');
+}
+
+const popupSecPath = path.join(extractDir, 'dist', 'webviewPopupSecurity.js');
+if (fs.existsSync(popupSecPath)) {
+  let sec = fs.readFileSync(popupSecPath, 'utf-8');
+  sec = sec.replace("label: 'Connection info…'", "label: '连接信息…'");
+  sec = sec.replace("title: 'Connection info'", "title: '连接信息'");
+  sec = sec.replace("buttons: ['OK']", "buttons: ['确定']");
+  fs.writeFileSync(popupSecPath, sec, 'utf-8');
+}
+
 // 8. Syntax validation
-const filesToCheck = [preloadPath, wizPreloadPath, menuPath, trayPath, ipcPath, updaterPath, mainPath, webauthnPath];
+const filesToCheck = [preloadPath, wizPreloadPath, menuPath, trayPath, ipcPath, updaterPath, mainPath, webauthnPath, devChooserPath, popupSecPath];
 for (const f of filesToCheck) {
   if (fs.existsSync(f)) {
     execSync(`node --check "${f}"`);

@@ -9,9 +9,11 @@ const { execSync, spawn } = require('child_process');
 
 const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local');
 const DEFAULT_PROGRAM_DIR = path.join(localAppData, 'Programs', 'antigravity');
-const ASAR_PATH = process.env.ANTIGRAVITY_ASAR || path.join(DEFAULT_PROGRAM_DIR, 'resources', 'app.asar');
-const ASAR_BAK = process.env.ANTIGRAVITY_ASAR_BAK || path.join(DEFAULT_PROGRAM_DIR, 'resources', 'app.asar.bak');
+const RES_DIR = path.join(DEFAULT_PROGRAM_DIR, 'resources');
+const ASAR_PATH = process.env.ANTIGRAVITY_ASAR || path.join(RES_DIR, 'app.asar');
+const ASAR_BAK = process.env.ANTIGRAVITY_ASAR_BAK || path.join(RES_DIR, 'app.asar.bak');
 const UNPACKED_SOURCE = path.join(path.dirname(ASAR_PATH), 'app.asar.unpacked');
+const UNTRANSLATED_FILE = path.join(RES_DIR, 'i18n_untranslated.json');
 const TOOL_DIR = __dirname;
 const ENGINE_PATH = path.join(TOOL_DIR, 'runtime', 'engine.js');
 const MAIN_HOOK_PATH = path.join(TOOL_DIR, 'runtime', 'main-hook.js');
@@ -143,6 +145,7 @@ function patchInPlace() {
       let ipc = fs.readFileSync(ipcPath, 'utf-8');
       ipc = ipc.replace("title: 'Open workspace'", "title: '打开工作区'");
       ipc = ipc.replace("title: 'Open workspaces'", "title: '打开工作区'");
+      ipc = ipc.replace("title: 'Select Download Folder'", "title: '选择下载文件夹'");
       ipc = ipc.replace("message: 'Folder is on the Windows filesystem'", "message: '文件夹位于 Windows 文件系统'");
       fs.writeFileSync(ipcPath, ipc, 'utf-8');
     }
@@ -164,6 +167,7 @@ function patchInPlace() {
       main = main.replace("detail: 'There may be agents or background tasks running.'", "detail: '可能有智能体或后台任务正在运行。'");
       main = main.replace("buttons: ['Cancel', 'Quit']", "buttons: ['取消', '退出']");
       main = main.replace("label: 'New Window'", "label: '新建窗口'");
+      main = main.replace("detail: 'Antigravity opened on Windows instead.'", "detail: 'Antigravity 已改为在 Windows 本地打开。'");
       fs.writeFileSync(mainPath, main, 'utf-8');
     }
 
@@ -176,8 +180,27 @@ function patchInPlace() {
       fs.writeFileSync(webauthnPath, auth, 'utf-8');
     }
 
+    const devChooserPath = path.join(extractDir, 'dist', 'deviceChooser.js');
+    if (fs.existsSync(devChooserPath)) {
+      let dev = fs.readFileSync(devChooserPath, 'utf-8');
+      dev = dev.replace("title: 'Connect a device'", "title: '连接设备'");
+      dev = dev.replace("'Select a device:'", "'请选择一个设备：'");
+      dev = dev.replace("'No compatible devices found.'", "'未找到兼容的设备。'");
+      dev = dev.replace("buttons: [...snapshot.map(({ label }) => label), 'Cancel']", "buttons: [...snapshot.map(({ label }) => label), '取消']");
+      fs.writeFileSync(devChooserPath, dev, 'utf-8');
+    }
+
+    const popupSecPath = path.join(extractDir, 'dist', 'webviewPopupSecurity.js');
+    if (fs.existsSync(popupSecPath)) {
+      let sec = fs.readFileSync(popupSecPath, 'utf-8');
+      sec = sec.replace("label: 'Connection info…'", "label: '连接信息…'");
+      sec = sec.replace("title: 'Connection info'", "title: '连接信息'");
+      sec = sec.replace("buttons: ['OK']", "buttons: ['确定']");
+      fs.writeFileSync(popupSecPath, sec, 'utf-8');
+    }
+
     // 防御规则 2：打包前强制执行语法门禁 (node --check)，若有任何语法错误则立刻熔断退出，绝不写坏主文件
-    const filesToCheck = [preloadPath, wizPreloadPath, menuPath, trayPath, ipcPath, updPath, mainPath, webauthnPath];
+    const filesToCheck = [preloadPath, wizPreloadPath, menuPath, trayPath, ipcPath, updPath, mainPath, webauthnPath, devChooserPath, popupSecPath];
     for (const f of filesToCheck) {
       if (fs.existsSync(f)) {
         try {
@@ -222,39 +245,52 @@ function patchInPlace() {
   }
 }
 
+function spawnHarvester() {
+  try {
+    const child = spawn('python', [HARVESTER_PY], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true
+    });
+    child.unref();
+  } catch (_) {}
+}
+
 function heal() {
   if (!fs.existsSync(ASAR_PATH)) {
     return;
   }
 
+  const forceHeal = process.argv.includes('--force');
   const alreadyLocalized = isLocalized(ASAR_PATH);
 
-  // 场景 1：检测到官方刚推送了新版本更新（未汉化原始包）
-  if (!alreadyLocalized) {
-    console.log('[自动汉化自愈] 检测到官方刚刚推送了新版本更新！');
-    console.log('[自动汉化自愈] 正在执行无感静默保底汉化 (约需 1~2 秒)...');
-
-    // 备份官方全新未修改的包作为基准源
-    try {
-      fs.copyFileSync(ASAR_PATH, ASAR_BAK);
-    } catch (_) {}
+  // 场景 1：检测到官方刚推送了新版本更新（未汉化原始包）或手动强制重注入
+  if (!alreadyLocalized || forceHeal) {
+    if (!alreadyLocalized) {
+      console.log('[自动汉化自愈] 检测到官方刚刚推送了新版本更新！');
+      console.log('[自动汉化自愈] 正在执行无感静默保底汉化 (约需 1~2 秒)...');
+      // 备份官方全新未修改的包作为基准源
+      try {
+        fs.copyFileSync(ASAR_PATH, ASAR_BAK);
+      } catch (_) {}
+    } else {
+      console.log('[自动汉化自愈] 正在基于官方原版备份重构建汉化引擎...');
+    }
 
     // 执行就地注入
     patchInPlace();
 
     // 在后台无声拉起采集挖掘器（不阻塞启动）
-    try {
-      const child = spawn('python', [HARVESTER_PY], {
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true
-      });
-      child.unref();
-    } catch (_) {}
+    spawnHarvester();
     return;
   }
 
-  // 场景 2：已有汉化，但后台智能体挖掘到了全新词条并就绪
+  // 场景 2：已有汉化，检查运行期是否采集到了新的未翻译 UI 词条，若有则在后台翻译并写入外部热加载词库
+  if (fs.existsSync(UNTRANSLATED_FILE)) {
+    spawnHarvester();
+  }
+
+  // 场景 3：若有旧版遗留标记文件，清理或按需升级
   if (fs.existsSync(MARKER_FILE)) {
     console.log('[自动汉化自愈] 发现后台智能体已完成新词自动挖掘与翻译，正在静默升级词典...');
     const ok = patchInPlace();
