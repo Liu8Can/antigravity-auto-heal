@@ -58,6 +58,18 @@ DEV_GLOSSARY = {
     'System Default Browser': '系统默认浏览器',
     'Open in Built-in Browser': '在内置浏览器中打开',
     'Open in External Browser': '在外部浏览器中打开',
+    'Local Checkout': '本地检出',
+    'Open IDE': '打开 IDE',
+    'Interface Layout': '界面布局',
+    'Voice mode': '语音模式',
+    'Voice Mode': '语音模式',
+    'System default': '系统默认',
+    'System Default': '系统默认',
+    'Chat': '对话',
+    'Verbose': '详细输出',
+    'Browser Subagent': '浏览器子智能体',
+    'Default (Mendel)': '默认 (Mendel)',
+    'Connect': '连接',
     'Passkeys': '通行密钥',
     'Choose a Passkey': '选择通行密钥',
     'Select a passkey account to continue:': '选择一个通行密钥账号以继续：',
@@ -108,7 +120,7 @@ DEV_GLOSSARY = {
 }
 
 PROPER_NOUN_BLACKLIST = re.compile(
-    r'\b(Gemini|Claude|GPT|Anthropic|OpenAI|Argon|Sonnet|Opus|Haiku|Flash|Nano|Ultra|Ubuntu|Debian|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Firefox|Safari|JSON|YAML|TOML|HTML|CSS|OAuth|CitC|UUID)\b',
+    r'\b(Gemini|Claude|GPT|Anthropic|OpenAI|Argon|Sonnet|Opus|Haiku|Flash|Nano|Ultra|Mendel|Ubuntu|Debian|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Firefox|Safari|JSON|YAML|TOML|HTML|CSS|OAuth|CitC|UUID|Ctrl|Shift|Alt|Enter|Tab|Esc|Escape|Backspace|Space|Home|End|PageUp|PageDown|Cmd|Opt|Win|Meta|Documents|Downloads|Desktop)\b',
     re.IGNORECASE
 )
 
@@ -150,7 +162,9 @@ def translate_phrase(text):
             sub = translate_phrase(rest.strip()) if rest.strip() else ''
             return (zh_val + sub) if sub else (zh_val + rest)
 
-    # Skip proper noun strings (model names, tech frameworks) from blind machine translation
+    # Skip proper noun strings (model names, tech frameworks, shortcuts, folder names, personal greetings)
+    if '_' in text or re.match(r'^(Hi|Hello|Welcome)\s+[A-Z]', text, re.IGNORECASE):
+        return None
     if PROPER_NOUN_BLACKLIST.search(text):
         return None
 

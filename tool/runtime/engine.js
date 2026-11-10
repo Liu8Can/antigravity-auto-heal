@@ -3587,6 +3587,18 @@
     "System Default Browser": "系统默认浏览器",
     "Open in Built-in Browser": "在内置浏览器中打开",
     "Open in External Browser": "在外部浏览器中打开",
+    "Local Checkout": "本地检出",
+    "Open IDE": "打开 IDE",
+    "Interface Layout": "界面布局",
+    "Voice mode": "语音模式",
+    "Voice Mode": "语音模式",
+    "System default": "系统默认",
+    "System Default": "系统默认",
+    "Chat": "对话",
+    "Verbose": "详细输出",
+    "Browser Subagent": "浏览器子智能体",
+    "Default (Mendel)": "默认 (Mendel)",
+    "Connect": "连接",
 
   };
 
@@ -5019,21 +5031,23 @@
   // 性能优化 3：已处理文本节点记忆化 WeakSet，消除父容器重绘时的重复遍历
   const translatedNodes = new WeakSet();
 
-  // 零污染静态 UI 未翻译词条采集器 (仅采集按钮/菜单/设置标签，严格过滤文件名/模型名/动态内容)
+  // 零污染静态 UI 未翻译词条采集器 (仅采集按钮/菜单/设置标签，严格过滤文件名/模型名/快捷键/动态内容)
   const _reportedUIWords = new Set();
   const _pendingUIWords = new Set();
   let _reportTimer = null;
   const _UI_TAGS = new Set(['BUTTON', 'LABEL', 'TH', 'LEGEND', 'SUMMARY', 'OPTION', 'H1', 'H2', 'H3', 'H4']);
   const _UI_ROLES = new Set(['menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'button', 'switch', 'option', 'heading']);
-  const _PROPER_NOUN_BLACKLIST = /\b(Gemini|Claude|GPT|Anthropic|OpenAI|Google|Antigravity|Argon|Sonnet|Opus|Haiku|Flash|Pro|Nano|Ultra|WSL|Ubuntu|Debian|Windows|macOS|Linux|Git|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Chrome|Firefox|Safari|Edge|JSON|YAML|TOML|HTML|CSS|MCP|API|SDK|CLI|SSH|URL|URI|HTTP|HTTPS|OAuth|CitC|VCS|UUID|UTF|ASCII)\b/i;
+  const _PROPER_NOUN_BLACKLIST = /\b(Gemini|Claude|GPT|Anthropic|OpenAI|Google|Antigravity|Argon|Sonnet|Opus|Haiku|Flash|Pro|Nano|Ultra|Mendel|WSL|Ubuntu|Debian|Windows|macOS|Linux|Git|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Chrome|Firefox|Safari|Edge|JSON|YAML|TOML|HTML|CSS|MCP|API|SDK|CLI|SSH|URL|URI|HTTP|HTTPS|OAuth|CitC|VCS|UUID|UTF|ASCII|Ctrl|Shift|Alt|Enter|Tab|Esc|Escape|Backspace|Space|Home|End|PageUp|PageDown|Cmd|Opt|Win|Meta|Documents|Downloads|Desktop)\b/i;
 
   function maybeReportUntranslatedUI(element, rawText) {
     if (!_ipcRenderer || !element || !rawText) return;
     const trimmed = rawText.trim();
     if (trimmed.length < 3 || trimmed.length > 75) return;
     if (_reportedUIWords.has(trimmed)) return;
-    // 必须以大写英文字母开头，包含小写字母，且仅含标准英文 UI 字符（不含路径斜杠、下划线、文件后缀点号连接等）
-    if (!/^[A-Z][a-zA-Z\s,.:?!'’()/&-…]+$/.test(trimmed)) return;
+    // 排除个人问候语 (如 Hi Daniel.)
+    if (/^(Hi|Hello|Welcome)\s+[A-Z]/i.test(trimmed)) return;
+    // 必须以大写英文字母开头，包含小写字母，且仅含标准英文 UI 字符（注意连字符置于末尾转义，严禁匹配下划线或数字）
+    if (!/^[A-Z][a-zA-Z\s,.:?!'’()/&…\-]+$/.test(trimmed)) return;
     if (!/[a-z]/.test(trimmed)) return;
     if (/\.[a-zA-Z0-9]{1,5}\b/.test(trimmed)) return; // 排除文件名如 main.js
     const words = trimmed.split(/\s+/);
