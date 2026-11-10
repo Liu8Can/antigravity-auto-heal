@@ -239,11 +239,40 @@ def run():
             with open(UNTRANSLATED_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    runtime_words = [w.strip() for w in data if isinstance(w, str) and 2 < len(w.strip()) <= 80]
+                    runtime_words = [w.strip() for w in data if isinstance(w, str) and 2 < len(w.strip()) <= 180]
                     found_strings.update(runtime_words)
             log(f"从运行期 IPC 采集池读取到 {len(runtime_words)} 个候选 UI 词条。")
         except Exception as e:
             log(f"读取运行期采集池失败: {e}")
+
+    # Source A2: Automatically scan live React bundle (/main.js) served by local language_server if running
+    try:
+        main_log = os.path.join(os.environ.get('APPDATA', ''), 'Antigravity', 'logs', 'main.log')
+        if os.path.exists(main_log):
+            with open(main_log, 'r', encoding='utf-8', errors='ignore') as lf:
+                log_tail = lf.read()[-30000:]
+            urls = re.findall(r'Local:\s+(https?://127\.0\.0\.1:\d+/)', log_tail)
+            if urls:
+                import urllib.request
+                import ssl
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                bundle_url = urls[-1].rstrip('/') + '/main.js'
+                req = urllib.request.urlopen(bundle_url, context=ctx, timeout=3)
+                js_bundle = req.read().decode('utf-8', errors='ignore')
+                ui_prop_re = re.compile(
+                    r'\b(?:label|description|subtitle|placeholder)\s*:\s*"([A-Z][a-zA-Z0-9\s,.:?!\'’()/&…\-]{2,180})"'
+                )
+                bundle_hits = 0
+                for m in ui_prop_re.finditer(js_bundle):
+                    s = m.group(1).strip()
+                    if ' ' in s and re.search(r'[a-z]', s) and not any(x in s for x in ['http://', 'https://', 'flex-', 'bg-', 'text-', 'px-', 'py-']):
+                        found_strings.add(s)
+                        bundle_hits += 1
+                log(f"从本地活动前端 Bundle ({bundle_url}) 扫描到 {bundle_hits} 个 UI 属性词条。")
+    except Exception:
+        pass
 
     # Source B: Unpack official backup app.asar.bak to scan main-process UI strings
     if os.path.exists(ASAR_BAK):

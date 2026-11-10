@@ -3600,6 +3600,289 @@
     "Default (Mendel)": "默认 (Mendel)",
     "Connect": "连接",
 
+    // ===== 2.30.0 设置页全量增量词条 =====
+    "Project 4K interface without developer tooling.": "不含开发者工具栏的 Project 4K 极简界面。",
+    "The full developer experience.": "完整的开发者工作台体验。",
+    "Configure what the agent can do in local and remote conversations.": "配置智能体在本地与远程对话中的操作权限。",
+    "This Computer": "当前电脑",
+    "Controls permissions for remote conversations.": "控制远程对话的智能体操作权限。",
+    "Modified in": "已修改于",
+    "Untitled project": "未命名项目",
+    "Execution": "执行策略",
+    "Queued Messages": "队列消息",
+    "Interrupt the agent and send immediately.": "中断智能体当前响应并立即发送。",
+    "Queue until after the current turn.": "加入队列，等待当前对话轮次结束后发送。",
+    "Chat Input": "对话输入",
+    "Enter to Send": "按 Enter 键发送",
+    "Send messages with the keyboard's Enter key instead of starting a new line.": "使用键盘的 Enter 键直接发送消息，而非换行。",
+    "Send messages with the keyboard’s Enter key instead of starting a new line.": "使用键盘的 Enter 键直接发送消息，而非换行。",
+    "Voice": "语音音色",
+    "Voices": "语音列表",
+    "The voice used in Voice mode. Powered by Gemini Live.": "语音模式中使用的音色，由 Gemini Live 提供支持。",
+    "The voice Jetski speaks with.": "智能体在语音对话中使用的说话音色。",
+    "Not set": "未设置",
+    "Microphone": "麦克风",
+    "Input device for voice mode and dictation.": "用于语音对话模式和语音听写的输入设备。",
+    "Voice volume": "语音音量",
+    "Chime volume": "提示音音量",
+    "How loud Antigravity's voice is.": "调整 Antigravity 语音播报的音量大小。",
+    "How loud Antigravity’s voice is.": "调整 Antigravity 语音播报的音量大小。",
+    "How loud Jetski's voice is.": "调整智能体语音播报的音量大小。",
+    "How loud Jetski’s voice is.": "调整智能体语音播报的音量大小。",
+    "Save audio recordings": "保存语音录音",
+    "Only stored on your machine.": "仅保存在您的本地电脑上。",
+    "Recordings": "录音记录",
+    "No recordings": "暂无录音记录",
+    "Delete all": "全部删除",
+    "Delete all recordings?": "确定要删除所有录音记录吗？",
+    "Previous voice": "上一个音色",
+    "Next voice": "下一个音色",
+    "Warm and approachable": "温暖亲切",
+    "Clear and friendly": "清晰友好",
+    "Deep and velvety": "低沉磁性",
+    "Confident and clear": "自信清晰",
+    "Warm and engaging": "热情生动",
+    "Light and precise": "轻快精准",
+    "Allow microphone access to start Voice": "请允许麦克风访问权限以开启语音模式",
+    "No microphone found. Connect one.": "未检测到麦克风，请连接麦克风设备。",
+    "Microphone blocked": "麦克风权限已被阻止",
+    "Microphone blocked in browser site settings.": "麦克风权限已在浏览器站点设置中被阻止。",
+    "Microphone blocked in system settings.": "麦克风权限已在系统设置中被阻止。",
+    "Microphone didn't respond.": "麦克风无响应。",
+    "Microphone didn’t respond.": "麦克风无响应。",
+    "Microphone is in use or unavailable.": "麦克风正在被占用或不可用。",
+    "Microphone off in Settings > Privacy & security > Microphone.": "麦克风已在“设置 > 隐私和安全性 > 麦克风”中关闭。",
+    "Microphone off in System Settings > Privacy & Security > Microphone.": "麦克风已在“系统设置 > 隐私与安全性 > 麦克风”中关闭。",
+    "Your sign-in needs an update. Sign in again to use Voice.": "您的登录状态需要更新，请重新登录以使用语音功能。",
+    "New Conversation Button": "新建对话按钮",
+    "Which workspace the New Conversation button and keyboard shortcut start you in.": "设置点击“新建对话”按钮或按下快捷键时默认进入的工作区。",
+    "New Workspace": "新建工作区",
+    "Create a new workspace from your first message.": "根据您的第一条消息自动创建一个新工作区。",
+    "Start without a workspace, for general questions.": "不关联工作区直接开始对话，适用于常规问答。",
+    "Last Workspace": "上次使用的工作区",
+    "Reuse your last workspace.": "继续使用您上一次打开的工作区。",
+    "A shell setup script run before every command the agent executes.": "在智能体执行每条终端命令前自动运行的 Shell 初始化脚本。",
+    "Setup script ran successfully.": "初始化脚本运行成功。",
+    "Setup script failed.": "初始化脚本运行失败。",
+    "Sandbox Allow Network": "沙盒允许网络访问",
+    "Allow sandboxed commands to make network requests.": "允许在沙盒内运行的终端命令发起网络请求。",
+    "Terminal sandbox is not supported in this environment": "当前运行环境不支持终端沙盒",
+    "Terminal command automatically proceeds if the command runs inside the sandbox. Otherwise, it requests review.": "若终端命令在沙盒内运行则自动放行，否则请求人工审核。",
+    "Terminal commands automatically proceed inside the sandbox. A command that needs to leave the sandbox proceeds only if an agent judges it reversible, and otherwise requests review.": "沙盒内的终端命令将自动放行；需要跳出沙盒的命令仅在智能体判定其可逆时放行，否则请求人工审核。",
+    "The agent always asks for confirmation before executing terminal commands (except those in the Allow list).": "智能体在执行终端命令前始终请求确认（白名单中的命令除外）。",
+    "The agent never asks for confirmation before executing terminal commands (except those in the Deny list). This provides the agent with the maximum ability to operate over long periods without intervention, but also has the highest risk of the agent executing an unsafe terminal command.": "智能体在执行终端命令前从不请求确认（黑名单中的命令除外）。这赋予了智能体长时间自主运行的最大能力，但也存在执行不安全终端命令的最高风险。",
+    "Agent always asks for review.": "智能体始终请求人工审核。",
+    "The agent always asks for review.": "智能体始终请求人工审核。",
+    "Agent never asks for review. This maximizes the autonomy of the Agent, but also has the highest risk of the Agent operating over unsafe or injected Artifact content.": "智能体从不请求审核。这能最大化智能体的自主性，但也存在处理不安全或被注入的工件内容的最高风险。",
+    "The agent never asks for review. This maximizes the autonomy of the agent, but also has the highest risk of the agent operating over unsafe or injected artifact content.": "智能体从不请求审核。这能最大化智能体的自主性，但也存在处理不安全或被注入的工件内容的最高风险。",
+    "Specifies the agent's behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。",
+    "Specifies the agent’s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。",
+    "Specifies the Agent's behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。",
+    "Specifies the Agent’s behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。",
+    "Controls whether terminal commands require your approval before running.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "控制终端命令在运行前是否需要经过您的批准。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Controls whether terminal commands require your approval before running. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "控制终端命令在运行前是否需要经过您的批准。注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the Agent's behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience.\n\nNote: A change to this setting will only apply to new messages sent to the Agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the Agent's behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience. Note: A change to this setting will only apply to new messages sent to the Agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the Agent’s behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience.\n\nNote: A change to this setting will only apply to new messages sent to the Agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the Agent’s behavior when asking for review on Artifacts, which are documents it creates to enable a richer conversation experience. Note: A change to this setting will only apply to new messages sent to the Agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the agent's behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the agent's behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the agent’s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Specifies the agent’s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "指定智能体在请求审核工件（为提供更丰富的对话体验而创建的文档）时的行为策略。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Allow the agent to automatically view and edit files outside the current workspace. Use with caution: this gives the agent access to additional potentially-relevant information, but also allows the agent to access credential files, secrets, and other files outside of the workspace that could be targeted in prompt injection attacks or other exploits by malicious actors.": "允许智能体自动查看与编辑当前工作区以外的文件。请谨慎使用：这虽能让智能体访问更多潜在相关信息，但也会允许其读取工作区外的凭据、密钥及其他敏感文件，从而在提示词注入攻击或恶意利用中带来安全风险。",
+    "Allow the agent to automatically view and edit files outside the current workspace. Use with caution: this gives the agent access to additional potentially-relevant information, but also allows the agent to access credential files, secrets, and other files outside of the workspace that could be targeted in prompt injection attacks or other exploits by malicious actors.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "允许智能体自动查看与编辑当前工作区以外的文件。请谨慎使用：这虽能让智能体访问更多潜在相关信息，但也会允许其读取工作区外的凭据、密钥及其他敏感文件，从而在提示词注入攻击或恶意利用中带来安全风险。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Allow the agent to automatically view and edit files outside the current workspace. Use with caution: this gives the agent access to additional potentially-relevant information, but also allows the agent to access credential files, secrets, and other files outside of the workspace that could be targeted in prompt injection attacks or other exploits by malicious actors. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "允许智能体自动查看与编辑当前工作区以外的文件。请谨慎使用：这虽能让智能体访问更多潜在相关信息，但也会允许其读取工作区外的凭据、密钥及其他敏感文件，从而在提示词注入攻击或恶意利用中带来安全风险。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Note: A change to this setting will only apply to new messages sent to the Agent. In-progress responses will use the previous setting value.": "注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Default Workspace VCS": "默认工作区版本控制 (VCS)",
+    "VCS used when creating a new workspace, including workspaces generated based off your initial prompt.": "创建新工作区（包括根据您的初始提示词自动生成的工作区）时使用的版本控制系统。",
+    "Default Cog Repository": "默认 Cog 仓库",
+    "Git-on-Borg repository used when creating a new Cog workspace from your initial prompt (e.g., chromium/src or android/platform/superproject).": "根据初始提示词创建新 Cog 工作区时使用的 Git-on-Borg 仓库（例如 chromium/src 或 android/platform/superproject）。",
+    "Default Cog Branch / Ref": "默认 Cog 分支 / 引用",
+    "Optional branch or ref used when creating a new Cog workspace (defaults to main if unset).": "创建新 Cog 工作区时使用的可选分支或引用（未设置时默认为 main）。",
+    "Sync JJ Worktrees to Head": "将 JJ 工作树同步至 Head",
+    "Sync newly created JJ worktrees to head when starting a conversation.": "开始新对话时，将新创建的 JJ 工作树自动同步至最新 Head。",
+    "Use full VCS clones for Best of N": "为 Best of N 使用完整 VCS 克隆",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork's state, so the commits it made are kept. Forks take longer to create than the default CitC clone.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork’s state, so the commits it made are kept. Forks take longer to create than the default CitC clone.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork's state, so the commits it made are kept. Forks take longer to create than the default CitC clone.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork's state, so the commits it made are kept. Forks take longer to create than the default CitC clone. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork’s state, so the commits it made are kept. Forks take longer to create than the default CitC clone.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork’s state, so the commits it made are kept. Forks take longer to create than the default CitC clone. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供工作区的完整克隆（包含本地提交历史）。选择胜出分支后，您的工作区将切换为该分支状态并保留其提交记录。相比默认 CitC 克隆，创建分支耗时更长。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Use full Git clones for Best of N": "为 Best of N 使用完整 Git 克隆",
+    "Give each Best of N fork its own clone of your Git repository instead of a copy-on-write overlay. Each fork is then a real repository, so commits it makes are kept when you choose it as the winner. Forks take longer to create, and the wait grows with the size of your repository.": "为每个 Best of N 分支提供独立的 Git 仓库完整克隆，而非写时复制叠加层。每个分支均为真实仓库，选择胜出分支后其提交记录将被完整保留。创建分支耗时更长，且随仓库体积增大而增加。",
+    "Give each Best of N fork its own clone of your Git repository instead of a copy-on-write overlay. Each fork is then a real repository, so commits it makes are kept when you choose it as the winner. Forks take longer to create, and the wait grows with the size of your repository.\n\nNote: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供独立的 Git 仓库完整克隆，而非写时复制叠加层。每个分支均为真实仓库，选择胜出分支后其提交记录将被完整保留。创建分支耗时更长，且随仓库体积增大而增加。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Give each Best of N fork its own clone of your Git repository instead of a copy-on-write overlay. Each fork is then a real repository, so commits it makes are kept when you choose it as the winner. Forks take longer to create, and the wait grows with the size of your repository. Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.": "为每个 Best of N 分支提供独立的 Git 仓库完整克隆，而非写时复制叠加层。每个分支均为真实仓库，选择胜出分支后其提交记录将被完整保留。创建分支耗时更长，且随仓库体积增大而增加。\n\n注意：对此设置的更改仅适用于发送给智能体的新消息，正在进行的响应仍将使用先前的设置值。",
+    "Configure the agent's visual theme and display preferences.": "配置智能体的视觉主题与界面显示偏好。",
+    "Configure the agent’s visual theme and display preferences.": "配置智能体的视觉主题与界面显示偏好。",
+    "Chat Layout": "对话布局",
+    "Conversation Steps": "对话步骤详情",
+    "Choose how much detail is shown during a conversation.": "选择对话过程中显示的执行步骤详细程度。",
+    "Fill": "铺满",
+    "Terminal Placement": "终端位置",
+    "Choose where terminal sessions appear.": "选择终端会话面板的默认显示位置。",
+    "Side Panel": "侧边面板",
+    "Bottom Panel": "底部面板",
+    "Context and Quota Indicator": "上下文与配额指示器",
+    "Show how full the context window is next to the send button. Click it for a breakdown and to see your model quota.": "在发送按钮旁显示上下文窗口占用率。点击可查看详细占用分布及您的模型配额。",
+    "Accessibility": "无障碍功能",
+    "Custom Context Menus": "自定义右键菜单",
+    "Replace the default browser right-click menu with quick actions.": "使用快捷操作菜单替换默认的浏览器右键菜单。",
+    "Screen Reader Mode": "屏幕阅读器模式",
+    "Optimize the interface and terminal output for screen readers.": "针对屏幕阅读器优化界面元素与终端输出。",
+    "Font": "字体",
+    "Legacy Light": "传统浅色",
+    "Legacy Dark": "传统深色",
+    "Solarized Dark": "Solarized 深色",
+    "Tokyo Night": "Tokyo Night",
+    "Gruvbox Material": "Gruvbox Material",
+    "Configure built-in browser, link opening, and browser subagent preferences.": "配置内置浏览器、链接打开方式以及浏览器子智能体偏好设置。",
+    "Side Panel Preview": "侧边面板预览",
+    "Download Location": "下载位置",
+    "Folder where files downloaded in the built-in browser are saved.": "内置浏览器下载文件的默认保存文件夹。",
+    "CitC workspace paths are world-readable and permanently snapshotted. Choose a local folder outside CitC.": "CitC 工作区路径为全局可读且会被永久快照记录，请选择 CitC 以外的本地文件夹。",
+    "Change…": "更改…",
+    "Change...": "更改...",
+    "Browsing History": "浏览历史记录",
+    "Clear visited URLs and autocomplete suggestions from the built-in browser.": "清除内置浏览器中已访问的网址记录与自动补全建议。",
+    "Clear visited URLs and autocomplete suggestions from side panel preview.": "清除侧边面板预览中已访问的网址记录与自动补全建议。",
+    "Enable Browser Tools": "启用浏览器工具",
+    "Let the agent use browser tools to open URLs, read web pages, and interact with browser content. This gives the agent access to important (and often critical) knowledge and methods of validation, but any browser integration does increase exposure to external malicious parties for security exploits.": "允许智能体使用浏览器工具打开网址、读取网页并与页面内容交互。这能为智能体提供关键的信息获取与验证手段，但任何浏览器集成都会增加受外部恶意攻击的风险。",
+    "Configure allowed and denied URLs for the browser subagent. It runs in the built-in browser, so no separate browser install is needed.": "配置浏览器子智能体允许和拒绝访问的 URL 列表。它在内置浏览器中运行，无需额外安装独立浏览器。",
+    "Browser Actuation Permissions": "浏览器交互操作权限",
+    "Execute URLs": "可执行交互的 URL",
+    "Allow/deny agent browser actuation access to specific URLs.": "允许或拒绝智能体在特定 URL 页面上执行浏览器交互操作。",
+    "Download files": "下载文件权限",
+    "Allow/deny agent browser file downloads from specific sites.": "允许或拒绝智能体从特定站点下载文件。",
+    "Organization Allowed Domains (Read-Only)": "组织允许的域名列表（只读）",
+    "These allowed domain rules are set by your organization's administrator and cannot be removed.": "这些允许访问的域名规则由您所属组织的管理员设置，无法移除。",
+    "These allowed domain rules are set by your organization’s administrator and cannot be removed.": "这些允许访问的域名规则由您所属组织的管理员设置，无法移除。",
+    "The browser subagent has been disabled by your administrator. Contact your administrator to enable browser use.": "浏览器子智能体已被管理员禁用，请联系您的管理员以启用浏览器功能。",
+    "Default Customizations": "默认自定义项",
+    "Include Jetski Default Customizations": "包含默认自定义项",
+    "Include default customizations, such as default skills.": "包含系统默认的自定义项（如内置默认技能）。",
+    "When enabled, the agent will include default customizations, including default skills.": "启用后，智能体将自动加载系统默认的自定义项（包括内置默认技能）。",
+    "Customize Global Skills": "自定义全局技能",
+    "There are no customizations enabled.": "当前未启用任何自定义项。",
+    "Customization token budget exceeded. Large customizations are excluded from context.": "自定义项 Token 预算已超限，体积较大的自定义项已被排除在上下文之外。",
+    "Rules token budget exceeded. Large rules are demoted to path pointers.": "规则 Token 预算已超限，体积较大的规则已降级为路径指针。",
+    "Rules and customization token budgets exceeded. Large rules are demoted to path pointers and large customizations are excluded from context.": "规则与自定义项 Token 预算均已超限，大体积规则已降级为路径指针，大体积自定义项已被排除在上下文之外。",
+    "Use Add MCP to browse the store.": "点击“添加 MCP”浏览商店。",
+    "These MCP allowlist rules are enforced by your organization's administrator.": "这些 MCP 白名单规则由您所属组织的管理员强制执行。",
+    "These MCP allowlist rules are enforced by your organization’s administrator.": "这些 MCP 白名单规则由您所属组织的管理员强制执行。",
+    "Your administrator has disabled MCP servers for this workspace.": "您的管理员已在此工作区禁用 MCP 服务器。",
+    "Enable this plugin to manage its accounts.": "启用此插件以管理其关联账号。",
+    "Services this plugin connects to on your behalf. Credentials stay on this machine and are only sent to the domains listed.": "此插件代表您连接的外部服务。凭据仅保存在本机，且仅发送至所列域名。",
+    "Sign out of this server?": "确定要退出登录此服务器吗？",
+    "Application": "应用程序",
+    "Updater": "更新程序",
+    "Your Plan": "您的订阅计划",
+    "Your Plan: ": "您的订阅计划：",
+    "Billing model": "计费模式",
+    "Subscription": "订阅制",
+    "Choose a Subscription": "选择订阅计划",
+    "Use Antigravity through your Gemini subscription.": "通过您的 Gemini 订阅计划使用 Antigravity。",
+    "Pay As You Go": "按量付费",
+    "Pay only for the tokens you use, billed through Gemini platform.": "仅为您实际消耗的 Token 付费，通过 Gemini 平台结算。",
+    "Google One Referral": "Google One 推荐计划",
+    "Share your referral link with friends": "与好友分享您的专属推荐链接",
+    "Invite a Friend": "邀请好友",
+    "Manage your conversations from the companion website.": "通过配套网页端管理您的对话。",
+    "Nickname": "设备昵称",
+    "A nickname for identifying this application in the companion website. Changing this will restart the connection.": "用于在配套网页端识别此客户端的昵称。修改此项将重新建立连接。",
+    "A label for this computer when you connect from another device. Changing it reconnects.": "从其他设备连接时显示的本机标签名称。修改此项将重新连接。",
+    "Show Remote Control QR code": "显示远程控制二维码",
+    "Remote Control link": "远程控制链接",
+    "You cannot sign out from Remote Control. Please sign out on your local application.": "无法从远程控制端退出登录，请在您的本地客户端上退出登录。",
+    "You are logged in using environment credentials and cannot sign out from the application.": "您当前使用环境变量凭据登录，无法从应用内直接退出登录。",
+    "You are logged in using Application Default Credentials (ADC). To log out, undo any changes to ~/.gemini/config/config.json (or unset AGY_ADC_AUTH if launched from terminal) and restart the application.": "您当前使用应用默认凭据 (ADC) 登录。如需退出登录，请还原 ~/.gemini/config/config.json 中的更改（若从终端启动请取消设置 AGY_ADC_AUTH）并重启应用。",
+    "Remote Agents Data": "远程智能体数据",
+    "Delete All Remote Agents Data": "删除所有远程智能体数据",
+    "Delete All Remote Agents Data?": "确定要删除所有远程智能体数据吗？",
+    "Delete All Data": "删除所有数据",
+    "Permanently delete your remote conversations, projects, scheduled tasks, connected plugins and settings. Data in the desktop app and your Google account are not affected.": "永久删除您的远程对话、项目、计划任务、已连接插件及设置。桌面端本地数据与您的 Google 账号不受影响。",
+    "Couldn't delete your data. Try again.": "无法删除您的数据，请重试。",
+    "Couldn’t delete your data. Try again.": "无法删除您的数据，请重试。",
+    "App version": "应用版本",
+    "Copy version details": "复制版本详情",
+    "Copied version details": "已复制版本详情",
+    "Copied to clipboard": "已复制到剪贴板",
+    "Authenticated via Enterprise Gateway": "已通过企业网关认证",
+    "Managed by Enterprise Gateway": "由企业网关托管",
+    "Enterprise Gateway": "企业网关",
+    "Available licenses": "可用许可证",
+    "Select License": "选择许可证",
+    "Other License": "其他许可证",
+    "Provide Google Cloud Project": "提供 Google Cloud 项目",
+    "Your Antigravity use will be associated with provided project.": "您的 Antigravity 使用情况将与所提供的项目关联。",
+    "Your Antigravity use will be associated with provided project. Make sure you trust the project ID before proceeding. Account activity and data may be logged by your organization.": "您的 Antigravity 使用情况将与所提供的项目关联。继续操作前请确认您信任该项目 ID，您的账号活动与数据可能会被所属组织记录。",
+    "Verify that these licenses were provided by your administrator and that you trust the project ID before proceeding. Account activity and data may be logged by your organization.": "继续操作前，请核实这些许可证由您的管理员提供且您信任该项目 ID。您的账号活动与数据可能会被所属组织记录。",
+    "Contact your administrator to set up Gemini Enterprise for this project": "请联系您的管理员为此项目配置 Gemini Enterprise",
+    "No license available for this project and location": "当前项目与地区无可用许可证",
+    "Failed to inspect license for this project": "检查此项目的许可证失败",
+    "Auto-assignment not configured": "未配置自动分配",
+    "Not Signed In": "未登录",
+    "Not configured": "未配置",
+    "Signing Out...": "正在退出登录...",
+    "Submitting...": "正在提交...",
+    "Continue": "继续",
+    "Manage": "管理",
+    "Preview": "预览",
+    "New Tab": "新建标签页",
+    "Open Conversation in New Tab": "在新标签页中打开对话",
+    "Background tasks and terminals agents left running, across all conversations.": "智能体在所有对话中留下的后台运行任务与终端会话。",
+    "Nothing is running right now": "当前没有正在运行的后台任务",
+    "Running processes are killed. This cannot be undone.": "正在运行的进程将被强制终止，此操作无法撤销。",
+    "Still running": "仍在运行",
+    "Google3 Configuration": "Google3 配置",
+    "No resources added yet.": "暂未添加任何资源。",
+    "No folders added yet.": "暂未添加任何文件夹。",
+    "Show Less": "收起",
+    "GitHub Permissions": "GitHub 权限配置",
+    "Manage fine-grained permissions for GitHub.": "管理 GitHub 的细粒度访问权限。",
+    "GitHub Personal Access Token": "GitHub 个人访问令牌 (PAT)",
+    "Create a token": "创建令牌",
+    "Authenticated as": "当前认证身份：",
+    "GitHub Policies": "GitHub 策略规则",
+    "Enable fine-grained GitHub permissions and define the org, repository, and resource-level access the agent is allowed to use.": "启用细粒度 GitHub 权限，并定义智能体可访问的组织、仓库及资源级操作权限。",
+    "Host": "主机",
+    "Organizations": "组织 (Organizations)",
+    "A comma-separated list like org-a, org-b, or * for all.": "以英文逗号分隔的组织列表（如 org-a, org-b），或填 * 代表全部。",
+    "Repositories": "仓库 (Repositories)",
+    "A comma-separated list like repo-a, repo-b, or * for all.": "以英文逗号分隔的仓库列表（如 repo-a, repo-b），或填 * 代表全部。",
+    "+ Add Organization policy": "+ 添加组织策略",
+    "+ Add issue policy": "+ 添加 Issue 策略",
+    "+ Add pull request policy": "+ 添加 Pull Request 策略",
+    "+ Add branch policy": "+ 添加分支策略",
+    "+ Add workflow run policy": "+ 添加工作流运行策略",
+    "Contents": "仓库内容 (Contents)",
+    "Read access to code, refs, commits, and other repository contents.": "读取代码、分支引用、提交记录及其他仓库内容的权限。",
+    "Read access": "读取权限",
+    "Toggle this on to enable read access on contents.": "开启此项以允许读取仓库内容。",
+    "Issues": "问题 (Issues)",
+    "Allow creating issues and grant access to specific issues.": "允许创建 Issue 并授予对特定 Issue 的操作权限。",
+    "Issue creation": "创建 Issue",
+    "Toggle this on to allow creating new issues.": "开启此项以允许创建新 Issue。",
+    "Allow opening pull requests and grant access to specific PRs.": "允许发起 Pull Request 并授予对特定 PR 的操作权限。",
+    "Toggle this on to allow creating new pull requests.": "开启此项以允许创建新 Pull Request。",
+    "Remote branches": "远程分支 (Remote Branches)",
+    "Grant create, update, or delete access to specific branches.": "授予对特定远程分支的创建、更新或删除权限。",
+    "Workflow runs": "工作流运行 (Workflow Runs)",
+    "Grant read access to workflow runs and allow dispatching workflows on specific files and refs.": "授予对工作流运行记录的读取权限，并允许在指定文件与分支引用上触发工作流。",
+    "Run visibility": "运行记录可见性",
+    "Allow reading workflow runs (list, view, watch) across the whole repository.": "允许读取整个仓库的工作流运行记录（列表、查看、监听）。",
+    "Access rules": "访问规则",
+    "Grant the selected actions on the listed issue numbers — a comma-separated list like 1, 2, 3, or * for all.": "对所列 Issue 编号授予选定操作权限 —— 请输入以逗号分隔的编号（如 1, 2, 3），或填 * 代表全部。",
+    "Grant the selected actions on the listed pull request numbers — a comma-separated list like 1, 2, 3, or * for all.": "对所列 Pull Request 编号授予选定操作权限 —— 请输入以逗号分隔的编号（如 1, 2, 3），或填 * 代表全部。",
+    "Grant the selected actions on the listed branch names — a comma-separated list like main, dev, prod (glob patterns like fix-* allowed), or * for all.": "对所列分支名称授予选定操作权限 —— 请输入以逗号分隔的分支名（如 main, dev, prod，支持 fix-* 等通配符），或填 * 代表全部。",
+    "Each rule lets the agent run the listed workflow files on the listed refs — each a comma-separated list like ci.yml, deploy.yml and main, dev (glob patterns like fix-* allowed), or * for all. Both fields must be set for a rule to grant anything.": "每条规则允许智能体在所列分支引用上运行指定的工作流文件 —— 均使用逗号分隔（如 ci.yml, deploy.yml 与 main, dev，支持 fix-* 通配符，或填 * 代表全部）。两个字段必须同时设置方可生效。",
+    "No access": "无权限",
+    "Agent can": "智能体可以执行",
+    "Agent can run": "智能体可以运行",
+    "at ref": "于分支/引用",
+    "These settings can only be changed on the computer running the app, not from a remote session.": "这些设置仅可在运行该应用的本地电脑上修改，无法在远程会话中更改。",
+    "The app is currently connected to a WSL distro. Reopening locally relaunches it directly on Windows.": "当前应用已连接至 WSL 发行版。选择在本地重新打开将直接在 Windows 环境中重启应用。",
+
   };
 
   // 通过主进程 IPC 动态加载外部增量词库 (无需重打包 app.asar 即可实时读取新词)
@@ -4609,6 +4892,18 @@
         (_m, v) => '智能体权限预设选择器，当前：' + v.replace(/Turbo/gi, '极速模式'));
       isDynamic = true;
     }
+    if (/^(\d+)\s+projects?$/i.test(trimmed)) {
+      dynamicMatch = trimmed.replace(/^(\d+)\s+projects?$/i, '$1 个项目');
+      isDynamic = true;
+    }
+    if (/^Low contrast ratio \((.+)\)\. Text may be hard to read\.$/i.test(trimmed)) {
+      dynamicMatch = trimmed.replace(/^Low contrast ratio \((.+)\)\. Text may be hard to read\.$/i, '对比度过低 ($1)，文字可能难以阅读。');
+      isDynamic = true;
+    }
+    if (/^Delete\s+(Project|Workspace)$/i.test(trimmed)) {
+      dynamicMatch = trimmed.replace(/^Delete\s+(Project|Workspace)$/i, (_m, v) => '删除' + (v.toLowerCase() === 'project' ? '项目' : '工作区'));
+      isDynamic = true;
+    }
     if (isDynamic) {
       return text.replace(trimmed, dynamicMatch);
     }
@@ -4628,9 +4923,26 @@
     // 性能：大小写不敏感匹配改用预先构建的 O(1) 索引 lowerDictionary，
     // 语义与原先遍历整本词典完全一致（取首个 toLowerCase 相同的键），
     // 但避免了每次未命中都要线性扫描两千余条词典。
-    const caseInsensitiveHit = lowerDictionary.get(trimmed.toLowerCase());
+    const caseInsensitiveHit = lowerDictionary.get(trimmed.toLowerCase()) || lowerDictionary.get(normalizedSpace.toLowerCase());
     if (caseInsensitiveHit !== undefined) {
       return text.replace(trimmed, caseInsensitiveHit);
+    }
+
+    // 1.5 多段落换行拆分兜底（例如设置项描述中包含 "\n\nNote: A change to this setting..."）
+    if (trimmed.includes('\n')) {
+      const parts = trimmed.split(/(\r?\n+)/);
+      let anyPartTranslated = false;
+      const translatedParts = parts.map(part => {
+        if (!part || /^\r?\n+$/.test(part) || !part.trim()) return part;
+        const tp = translateString(part);
+        if (tp !== part) anyPartTranslated = true;
+        return tp;
+      });
+      if (anyPartTranslated) {
+        const joined = translatedParts.join('');
+        if (stringCache.size < MAX_STRING_CACHE) stringCache.set(trimmed, joined);
+        return text.replace(trimmed, joined);
+      }
     }
 
     // 2. Intelligent Punctuation Stripping & Reconstruction
@@ -5042,7 +5354,7 @@
   function maybeReportUntranslatedUI(element, rawText) {
     if (!_ipcRenderer || !element || !rawText) return;
     const trimmed = rawText.trim();
-    if (trimmed.length < 3 || trimmed.length > 75) return;
+    if (trimmed.length < 3 || trimmed.length > 180) return;
     if (_reportedUIWords.has(trimmed)) return;
     // 排除个人问候语 (如 Hi Daniel.)
     if (/^(Hi|Hello|Welcome)\s+[A-Z]/i.test(trimmed)) return;
@@ -5051,21 +5363,23 @@
     if (!/[a-z]/.test(trimmed)) return;
     if (/\.[a-zA-Z0-9]{1,5}\b/.test(trimmed)) return; // 排除文件名如 main.js
     const words = trimmed.split(/\s+/);
-    if (words.length < 1 || words.length > 10) return;
-    if (_PROPER_NOUN_BLACKLIST.test(trimmed)) return;
+    if (words.length < 1 || words.length > 28) return;
+    // 仅对单词数 <= 2 的短词应用专有名词黑名单（避免因长描述句中含 Antigravity/Chrome/MCP/URL 而整句漏报）
+    if (words.length <= 2 && _PROPER_NOUN_BLACKLIST.test(trimmed)) return;
 
-    // 校验 DOM 容器：必须是纯正的静态 UI 控件标签或角色
+    // 校验 DOM 容器：必须是纯正的静态 UI 控件标签、角色，或位于设置卡片 (.agy-card / settings) 内的 SPAN/DIV/P
     const tag = element.tagName;
     const role = element.getAttribute ? element.getAttribute('role') : '';
     const parent = element.parentElement;
     const parentTag = parent ? parent.tagName : '';
     const parentRole = (parent && parent.getAttribute) ? parent.getAttribute('role') : '';
 
-    const isUIControl = _UI_TAGS.has(tag) || _UI_ROLES.has(role) || _UI_TAGS.has(parentTag) || _UI_ROLES.has(parentRole);
-    if (!isUIControl) return;
+    const isDirectControl = _UI_TAGS.has(tag) || _UI_ROLES.has(role) || _UI_TAGS.has(parentTag) || _UI_ROLES.has(parentRole);
+    const isSettingsText = (tag === 'SPAN' || tag === 'DIV' || tag === 'P') && element.closest && element.closest('.agy-card, [data-testid*="settings"]');
+    if (!isDirectControl && !isSettingsText) return;
 
-    // 排除聊天对话区、Markdown 渲染区、代码树与模型选择器
-    if (element.closest && element.closest('.prose, .markdown, pre, code, [data-lexical-editor], .monaco-editor, .xterm, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"]')) {
+    // 排除聊天对话区、Markdown 渲染区、代码树、模型选择器、等宽路径值与版本号详情
+    if (element.closest && element.closest('.prose, .markdown, pre, code, .font-mono, [data-lexical-editor], .monaco-editor, .xterm, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"], [data-testid*="value"], [data-testid*="details"], [data-testid*="caption"]')) {
       return;
     }
 
