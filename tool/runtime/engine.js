@@ -5343,46 +5343,83 @@
   // 性能优化 3：已处理文本节点记忆化 WeakSet，消除父容器重绘时的重复遍历
   const translatedNodes = new WeakSet();
 
-  // 零污染静态 UI 未翻译词条采集器 (仅采集按钮/菜单/设置标签，严格过滤文件名/模型名/快捷键/动态内容)
+  // 零污染静态 UI 未翻译词条采集器 + 实时热更新绑定表 (无需手动提取，主进程异步翻译后毫秒级回填当前屏幕 DOM)
   const _reportedUIWords = new Set();
   const _pendingUIWords = new Set();
+  const _untranslatedNodeMap = new Map(); // Map<trimmedEn, Set<TextNode>>
   let _reportTimer = null;
-  const _UI_TAGS = new Set(['BUTTON', 'LABEL', 'TH', 'LEGEND', 'SUMMARY', 'OPTION', 'H1', 'H2', 'H3', 'H4']);
-  const _UI_ROLES = new Set(['menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'button', 'switch', 'option', 'heading']);
+  const _UI_TAGS = new Set(['BUTTON', 'LABEL', 'TH', 'TD', 'LEGEND', 'SUMMARY', 'OPTION', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'DIV', 'P', 'A', 'LI']);
+  const _UI_ROLES = new Set(['menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'button', 'switch', 'option', 'heading', 'dialog', 'alertdialog']);
   const _PROPER_NOUN_BLACKLIST = /\b(Gemini|Claude|GPT|Anthropic|OpenAI|Google|Antigravity|Argon|Sonnet|Opus|Haiku|Flash|Pro|Nano|Ultra|Mendel|WSL|Ubuntu|Debian|Windows|macOS|Linux|Git|GitHub|GitLab|Python|Node|TypeScript|JavaScript|React|Electron|Chrome|Firefox|Safari|Edge|JSON|YAML|TOML|HTML|CSS|MCP|API|SDK|CLI|SSH|URL|URI|HTTP|HTTPS|OAuth|CitC|VCS|UUID|UTF|ASCII|Ctrl|Shift|Alt|Enter|Tab|Esc|Escape|Backspace|Space|Home|End|PageUp|PageDown|Cmd|Opt|Win|Meta|Documents|Downloads|Desktop)\b/i;
 
-  function maybeReportUntranslatedUI(element, rawText) {
+  if (_ipcRenderer && typeof _ipcRenderer.on === 'function') {
+    _ipcRenderer.on('i18n:auto-translated', (_event, newlyTranslated) => {
+      if (!newlyTranslated || typeof newlyTranslated !== 'object') return;
+      for (const [en, zh] of Object.entries(newlyTranslated)) {
+        if (!en || !zh || typeof zh !== 'string') continue;
+        dictionary[en] = zh;
+        lowerDictionary.set(en.toLowerCase(), zh);
+        stringCache.delete(en);
+        const nodeSet = _untranslatedNodeMap.get(en);
+        if (nodeSet) {
+          for (const textNode of nodeSet) {
+            try {
+              if (textNode && textNode.nodeValue && textNode.nodeValue.includes(en)) {
+                textNode.nodeValue = textNode.nodeValue.replace(en, zh);
+                translatedNodes.add(textNode);
+              }
+            } catch (_) {}
+          }
+          _untranslatedNodeMap.delete(en);
+        }
+      }
+    });
+  }
+
+  function maybeReportUntranslatedUI(element, rawText, textNode) {
     if (!_ipcRenderer || !element || !rawText) return;
     const trimmed = rawText.trim();
-    if (trimmed.length < 3 || trimmed.length > 180) return;
-    if (_reportedUIWords.has(trimmed)) return;
-    // 排除个人问候语 (如 Hi Daniel.)
+    if (trimmed.length < 3 || trimmed.length > 260) return;
+    // 排除个人问候语、邮箱、网址与路径
     if (/^(Hi|Hello|Welcome)\s+[A-Z]/i.test(trimmed)) return;
-    // 必须以大写英文字母开头，包含小写字母，且仅含标准英文 UI 字符（注意连字符置于末尾转义，严禁匹配下划线或数字）
-    if (!/^[A-Z][a-zA-Z\s,.:?!'’()/&…\-]+$/.test(trimmed)) return;
+    if (/https?:\/\/|file:\/\/|[@\\]/i.test(trimmed)) return;
+    // 必须以大写英文字母或 + 号开头，包含小写字母，且仅含标准英文 UI 字符（严禁匹配下划线）
+    if (!/^[A-Z+][a-zA-Z0-9\s,.:?!'’()/&…+\-]+$/.test(trimmed)) return;
     if (!/[a-z]/.test(trimmed)) return;
     if (/\.[a-zA-Z0-9]{1,5}\b/.test(trimmed)) return; // 排除文件名如 main.js
     const words = trimmed.split(/\s+/);
-    if (words.length < 1 || words.length > 28) return;
-    // 仅对单词数 <= 2 的短词应用专有名词黑名单（避免因长描述句中含 Antigravity/Chrome/MCP/URL 而整句漏报）
-    if (words.length <= 2 && _PROPER_NOUN_BLACKLIST.test(trimmed)) return;
+    if (words.length < 1 || words.length > 42) return;
+    // 单词数 <= 2 时排除含数字的型号/版本号及纯专有名词
+    if (words.length <= 2) {
+      if (/\d/.test(trimmed)) return;
+      if (_PROPER_NOUN_BLACKLIST.test(trimmed)) return;
+    }
 
-    // 校验 DOM 容器：必须是纯正的静态 UI 控件标签、角色，或位于设置卡片 (.agy-card / settings) 内的 SPAN/DIV/P
+    // 校验 DOM 容器标签或角色
     const tag = element.tagName;
     const role = element.getAttribute ? element.getAttribute('role') : '';
     const parent = element.parentElement;
     const parentTag = parent ? parent.tagName : '';
     const parentRole = (parent && parent.getAttribute) ? parent.getAttribute('role') : '';
 
-    const isDirectControl = _UI_TAGS.has(tag) || _UI_ROLES.has(role) || _UI_TAGS.has(parentTag) || _UI_ROLES.has(parentRole);
-    const isSettingsText = (tag === 'SPAN' || tag === 'DIV' || tag === 'P') && element.closest && element.closest('.agy-card, [data-testid*="settings"]');
-    if (!isDirectControl && !isSettingsText) return;
+    const isUIElement = _UI_TAGS.has(tag) || _UI_ROLES.has(role) || _UI_TAGS.has(parentTag) || _UI_ROLES.has(parentRole);
+    if (!isUIElement) return;
 
-    // 排除聊天对话区、Markdown 渲染区、代码树、模型选择器、等宽路径值与版本号详情
-    if (element.closest && element.closest('.prose, .markdown, pre, code, .font-mono, [data-lexical-editor], .monaco-editor, .xterm, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"], [data-testid*="value"], [data-testid*="details"], [data-testid*="caption"]')) {
+    // 严格排除聊天对话区、AI 思考区、Markdown 渲染区、代码树、模型选择器、等宽路径值与版本号详情
+    if (element.closest && element.closest('.prose, .markdown, pre, code, .font-mono, [data-lexical-editor], .monaco-editor, .xterm, .thought-content, .thinking-content, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"], [data-testid*="value"], [data-testid*="details"], [data-testid*="caption"]')) {
       return;
     }
 
+    if (textNode) {
+      let set = _untranslatedNodeMap.get(trimmed);
+      if (!set) {
+        set = new Set();
+        _untranslatedNodeMap.set(trimmed, set);
+      }
+      set.add(textNode);
+    }
+
+    if (_reportedUIWords.has(trimmed)) return;
     _reportedUIWords.add(trimmed);
     _pendingUIWords.add(trimmed);
     if (!_reportTimer) {
@@ -5395,7 +5432,7 @@
             _ipcRenderer.send('i18n:report-untranslated', batch);
           } catch (_) {}
         }
-      }, 4000);
+      }, 250);
     }
   }
 
@@ -5414,7 +5451,7 @@
       } else if (!/[a-zA-Z]/.test(original)) {
         translatedNodes.add(node);
       } else {
-        maybeReportUntranslatedUI(node.parentElement, original);
+        maybeReportUntranslatedUI(node.parentElement, original, node);
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       ['placeholder', 'title', 'aria-label', 'value'].forEach(attr => {

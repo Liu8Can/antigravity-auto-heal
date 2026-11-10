@@ -21,6 +21,15 @@ const HARVESTER_PY = path.join(TOOL_DIR, 'harvester.py');
 const MARKER_FILE = path.join(TOOL_DIR, '.new_words_ready');
 const STAGED_ASAR = path.join(TOOL_DIR, 'staged.asar');
 
+function isAntigravityRunning() {
+  try {
+    const out = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { stdio: 'pipe', windowsHide: true }).toString();
+    return out.toLowerCase().includes('antigravity.exe');
+  } catch (_) {
+    return false;
+  }
+}
+
 function isLocalized(asarPath) {
   if (!fs.existsSync(asarPath)) return false;
   try {
@@ -220,7 +229,17 @@ function patchInPlace() {
       cwd: workDir
     });
 
-    // 7. 安全覆盖（若主程序正在运行占用句柄，则自动保存为预构建包 staged.asar，下次启动 5 毫秒极速替换）
+    // 7. 安全覆盖（严禁在 Antigravity.exe 运行期间直接改写磁盘上的 app.asar，否则会导致 Electron 内存中的 ASAR 偏移量索引错位、按 Ctrl+R 时 preload.js 截断失效）
+    const isRunning = isAntigravityRunning();
+    if (isRunning && !process.argv.includes('--replace-live')) {
+      try {
+        fs.copyFileSync(tempAsar, STAGED_ASAR);
+      } catch (_) {}
+      console.log('[自动汉化自愈] 检测到 Antigravity 正在运行，为保护内存 ASAR 偏移索引，已生成预构建包 staged.asar（下次启动毫秒级替换生效）。');
+      fs.rmSync(workDir, { recursive: true, force: true });
+      return false;
+    }
+
     try {
       fs.copyFileSync(tempAsar, ASAR_PATH);
       if (fs.existsSync(STAGED_ASAR)) {
@@ -271,8 +290,8 @@ function heal() {
   const forceHeal = process.argv.includes('--force');
   const alreadyLocalized = isLocalized(ASAR_PATH);
 
-  // 场景 0：若存在已预构建好的 staged.asar（上次因程序运行 EBUSY 暂存的包），直接 5 毫秒替换生效！
-  if (fs.existsSync(STAGED_ASAR) && !forceHeal && alreadyLocalized) {
+  // 场景 0：若存在已预构建好的 staged.asar（上次因程序运行暂存的包），且当前主程序未运行，直接 5 毫秒替换生效！
+  if (fs.existsSync(STAGED_ASAR) && !forceHeal && alreadyLocalized && !isAntigravityRunning()) {
     try {
       fs.copyFileSync(STAGED_ASAR, ASAR_PATH);
       fs.unlinkSync(STAGED_ASAR);

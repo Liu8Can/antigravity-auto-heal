@@ -266,14 +266,170 @@ if (_i18nElectron.dialog) {
   };
 }
 
-// 3. 主进程与渲染进程安全词库 IPC 桥接 (规避 preload 渲染沙箱无 fs 权限限制)
+// 3. 主进程与渲染进程安全词库 IPC 桥接 + 实时自动翻译自愈引擎 (无需手动提取、无需重打包 app.asar)
 const _reportedWordsSet = new Set();
+const _inflightWordsSet = new Set();
 let _flushTimer = null;
+let _cachedCustomDict = null;
+
+function _getCachedCustomDict() {
+  if (!_cachedCustomDict) {
+    _cachedCustomDict = loadCustomDict() || {};
+  }
+  return _cachedCustomDict;
+}
+
+function _saveCachedCustomDict() {
+  if (!_cachedCustomDict) return;
+  try {
+    _i18nFs.writeFileSync(_I18N_CUSTOM_DICT_FILE, JSON.stringify(_cachedCustomDict, null, 2), 'utf-8');
+  } catch (_) {}
+}
+
+function _refineZhTerminology(en, zh) {
+  if (!zh || typeof zh !== 'string') return '';
+  let res = zh.trim();
+  if (!res || res === en || !/[\u4e00-\u9fa5]/.test(res)) return '';
+  if (/MYMEMORY WARNING|YOU USED ALL AVAILABLE FREE TRANSLATIONS|QUERY LENGTH LIMIT/i.test(res)) return '';
+  if (/\bsubagents?\b/i.test(en)) {
+    res = res.replace(/子代理|子特工|副代理/g, '子智能体');
+  }
+  if (/\bagents?\b/i.test(en)) {
+    res = res.replace(/代理商|特工|经纪人|代理/g, '智能体');
+  }
+  if (/\bworkspaces?\b/i.test(en)) {
+    res = res.replace(/工作空间/g, '工作区');
+  }
+  if (/\bartifacts?\b/i.test(en)) {
+    res = res.replace(/人工制品|神器的?|文物/g, '工件');
+  }
+  if (/\bsandbox(?:ed)?\b/i.test(en)) {
+    res = res.replace(/沙箱/g, '沙盒');
+  }
+  if (/\bprompts?\b/i.test(en) && !/\bprompt\s+(?:you|for)\b/i.test(en)) {
+    res = res.replace(/提示符/g, '提示词');
+  }
+  return res;
+}
+
+async function _fetchJsonViaElectron(url) {
+  const fetchFn = (_i18nElectron.net && typeof _i18nElectron.net.fetch === 'function')
+    ? _i18nElectron.net.fetch.bind(_i18nElectron.net)
+    : (typeof fetch === 'function' ? fetch : null);
+  if (!fetchFn) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const resp = await fetchFn(url, { signal: controller.signal });
+    if (!resp || !resp.ok) return null;
+    return await resp.json();
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function _translateSinglePhrase(en) {
+  // 1. Primary: Google Translate GTX
+  const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(en);
+  const gData = await _fetchJsonViaElectron(gUrl);
+  if (gData && Array.isArray(gData[0])) {
+    const raw = gData[0].map(p => (p && p[0]) ? p[0] : '').join('');
+    const refined = _refineZhTerminology(en, raw);
+    if (refined) return refined;
+  }
+  // 2. Fallback: MyMemory API
+  const mUrl = 'https://api.mymemory.translated.net/get?langpair=en|zh-CN&q=' + encodeURIComponent(en);
+  const mData = await _fetchJsonViaElectron(mUrl);
+  if (mData && mData.responseData && mData.responseData.translatedText) {
+    const refined = _refineZhTerminology(en, mData.responseData.translatedText);
+    if (refined) return refined;
+  }
+  return '';
+}
+
+async function _autoTranslateBatchAndNotify(sender, words) {
+  const dict = _getCachedCustomDict();
+  const todo = [];
+  for (const raw of words) {
+    if (typeof raw !== 'string') continue;
+    const w = raw.trim();
+    if (w.length < 2 || w.length > 360) continue;
+    if (dict[w] || menuTranslationMap[w] || dialogTextMap[w] || _inflightWordsSet.has(w)) continue;
+    _inflightWordsSet.add(w);
+    todo.push(w);
+  }
+  if (todo.length === 0) return;
+
+  const CHUNK_SIZE = 12;
+  const newlyTranslated = {};
+
+  for (let i = 0; i < todo.length; i += CHUNK_SIZE) {
+    const chunk = todo.slice(i, i + CHUNK_SIZE);
+    // Single-line items can be batch-translated in 1 HTTP request separated by \n
+    const singleLineItems = chunk.filter(x => !x.includes('\n'));
+    const multiLineItems = chunk.filter(x => x.includes('\n'));
+
+    if (singleLineItems.length > 0) {
+      const joined = singleLineItems.join('\n');
+      const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(joined);
+      const gData = await _fetchJsonViaElectron(gUrl);
+      let batchSucceeded = false;
+      if (gData && Array.isArray(gData[0])) {
+        const fullTrans = gData[0].map(p => (p && p[0]) ? p[0] : '').join('');
+        const transLines = fullTrans.split('\n');
+        if (transLines.length === singleLineItems.length) {
+          batchSucceeded = true;
+          for (let j = 0; j < singleLineItems.length; j++) {
+            const orig = singleLineItems[j];
+            const zh = _refineZhTerminology(orig, transLines[j]);
+            if (zh) {
+              dict[orig] = zh;
+              newlyTranslated[orig] = zh;
+            }
+          }
+        }
+      }
+      if (!batchSucceeded) {
+        for (const orig of singleLineItems) {
+          const zh = await _translateSinglePhrase(orig);
+          if (zh) {
+            dict[orig] = zh;
+            newlyTranslated[orig] = zh;
+          }
+        }
+      }
+    }
+
+    for (const orig of multiLineItems) {
+      const zh = await _translateSinglePhrase(orig);
+      if (zh) {
+        dict[orig] = zh;
+        newlyTranslated[orig] = zh;
+      }
+    }
+  }
+
+  for (const w of todo) {
+    _inflightWordsSet.delete(w);
+  }
+
+  if (Object.keys(newlyTranslated).length > 0) {
+    _saveCachedCustomDict();
+    try {
+      if (sender && !sender.isDestroyed()) {
+        sender.send('i18n:auto-translated', newlyTranslated);
+      }
+    } catch (_) {}
+  }
+}
 
 function _flushUntranslatedWords() {
   _flushTimer = null;
   if (_reportedWordsSet.size === 0) return;
   try {
+    const dict = _getCachedCustomDict();
     let existing = [];
     if (_i18nFs.existsSync(_I18N_UNTRANSLATED_FILE)) {
       try {
@@ -286,7 +442,7 @@ function _flushUntranslatedWords() {
     const merged = new Set(existing);
     let added = 0;
     for (const w of _reportedWordsSet) {
-      if (!merged.has(w) && !menuTranslationMap[w] && !dialogTextMap[w]) {
+      if (!merged.has(w) && !dict[w] && !menuTranslationMap[w] && !dialogTextMap[w]) {
         merged.add(w);
         added++;
       }
@@ -300,18 +456,20 @@ function _flushUntranslatedWords() {
 
 if (_i18nElectron.ipcMain) {
   _i18nElectron.ipcMain.on('i18n:get-custom-dict', (event) => {
-    event.returnValue = loadCustomDict();
+    event.returnValue = _getCachedCustomDict();
   });
 
-  _i18nElectron.ipcMain.on('i18n:report-untranslated', (_event, words) => {
+  _i18nElectron.ipcMain.on('i18n:report-untranslated', (event, words) => {
     if (!Array.isArray(words)) return;
     for (const w of words) {
-      if (typeof w === 'string' && w.length >= 2 && w.length <= 90) {
+      if (typeof w === 'string' && w.length >= 2 && w.length <= 360) {
         _reportedWordsSet.add(w);
       }
     }
     if (_reportedWordsSet.size > 0 && !_flushTimer) {
       _flushTimer = setTimeout(_flushUntranslatedWords, 3000);
     }
+    // 立即在主进程后台异步调用翻译并在完成后实时推送回渲染进程热更新 DOM
+    _autoTranslateBatchAndNotify(event.sender, words).catch(() => {});
   });
 }
