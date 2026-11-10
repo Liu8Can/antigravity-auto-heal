@@ -19,6 +19,7 @@ const ENGINE_PATH = path.join(TOOL_DIR, 'runtime', 'engine.js');
 const MAIN_HOOK_PATH = path.join(TOOL_DIR, 'runtime', 'main-hook.js');
 const HARVESTER_PY = path.join(TOOL_DIR, 'harvester.py');
 const MARKER_FILE = path.join(TOOL_DIR, '.new_words_ready');
+const STAGED_ASAR = path.join(TOOL_DIR, 'staged.asar');
 
 function isLocalized(asarPath) {
   if (!fs.existsSync(asarPath)) return false;
@@ -219,12 +220,18 @@ function patchInPlace() {
       cwd: workDir
     });
 
-    // 7. 安全覆盖
+    // 7. 安全覆盖（若主程序正在运行占用句柄，则自动保存为预构建包 staged.asar，下次启动 5 毫秒极速替换）
     try {
       fs.copyFileSync(tempAsar, ASAR_PATH);
+      if (fs.existsSync(STAGED_ASAR)) {
+        try { fs.unlinkSync(STAGED_ASAR); } catch (_) {}
+      }
     } catch (copyErr) {
       if (copyErr.code === 'EBUSY' || copyErr.code === 'EPERM') {
-        console.log('[自动汉化自愈] 提示：检测到主程序正在运行，已安全暂缓写入，将在下次启动时自动应用。');
+        try {
+          fs.copyFileSync(tempAsar, STAGED_ASAR);
+        } catch (_) {}
+        console.log('[自动汉化自愈] 提示：检测到主程序正在运行，已生成预构建包 staged.asar，将在下次关闭重启时毫秒级替换生效。');
         fs.rmSync(workDir, { recursive: true, force: true });
         return false;
       }
@@ -264,7 +271,24 @@ function heal() {
   const forceHeal = process.argv.includes('--force');
   const alreadyLocalized = isLocalized(ASAR_PATH);
 
-  // 场景 1：检测到官方刚推送了新版本更新（未汉化原始包）或手动强制重注入
+  // 场景 0：若存在已预构建好的 staged.asar（上次因程序运行 EBUSY 暂存的包），直接 5 毫秒替换生效！
+  if (fs.existsSync(STAGED_ASAR) && !forceHeal && alreadyLocalized) {
+    try {
+      fs.copyFileSync(STAGED_ASAR, ASAR_PATH);
+      fs.unlinkSync(STAGED_ASAR);
+      if (fs.existsSync(MARKER_FILE)) {
+        try { fs.unlinkSync(MARKER_FILE); } catch (_) {}
+      }
+      console.log('[自动汉化自愈] 预构建包 staged.asar 已毫秒级替换生效！');
+      if (fs.existsSync(UNTRANSLATED_FILE)) {
+        spawnHarvester();
+      }
+      return;
+    } catch (_) {
+      // 主程序仍在运行，继续保留 staged.asar 等待下次完全退出后启动
+      return;
+    }
+  }
   if (!alreadyLocalized || forceHeal) {
     if (!alreadyLocalized) {
       console.log('[自动汉化自愈] 检测到官方刚刚推送了新版本更新！');

@@ -1,13 +1,13 @@
 // Antigravity 2.0+ Native Main Process Hook (Menu, Dialog & Dynamic i18n IPC Bridge)
 'use strict';
 
-const electron = require('electron');
-const fs = require('fs');
-const path = require('path');
+const _i18nElectron = require('electron');
+const _i18nFs = require('fs');
+const _i18nPath = require('path');
 
-const RES_DIR = process.resourcesPath || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
-const CUSTOM_DICT_FILE = path.join(RES_DIR, 'i18n_custom_dict.json');
-const UNTRANSLATED_FILE = path.join(RES_DIR, 'i18n_untranslated.json');
+const _I18N_RES_DIR = process.resourcesPath || _i18nPath.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
+const _I18N_CUSTOM_DICT_FILE = _i18nPath.join(_I18N_RES_DIR, 'i18n_custom_dict.json');
+const _I18N_UNTRANSLATED_FILE = _i18nPath.join(_I18N_RES_DIR, 'i18n_untranslated.json');
 
 const menuTranslationMap = {
   'File': '文件',
@@ -122,8 +122,8 @@ const dialogTextMap = {
 // 加载外部动态增量词典 (无需重打包 app.asar 即可扩展主进程与渲染进程词库)
 function loadCustomDict() {
   try {
-    if (fs.existsSync(CUSTOM_DICT_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CUSTOM_DICT_FILE, 'utf-8'));
+    if (_i18nFs.existsSync(_I18N_CUSTOM_DICT_FILE)) {
+      const data = JSON.parse(_i18nFs.readFileSync(_I18N_CUSTOM_DICT_FILE, 'utf-8'));
       if (data && typeof data === 'object') {
         for (const [k, v] of Object.entries(data)) {
           if (k && typeof v === 'string') {
@@ -163,17 +163,17 @@ function translateMenuItem(item) {
 }
 
 // 1. Hook Menu.setApplicationMenu & Menu.buildFromTemplate
-if (electron.Menu) {
-  const origSetAppMenu = electron.Menu.setApplicationMenu;
-  electron.Menu.setApplicationMenu = function(menu) {
+if (_i18nElectron.Menu) {
+  const origSetAppMenu = _i18nElectron.Menu.setApplicationMenu;
+  _i18nElectron.Menu.setApplicationMenu = function(menu) {
     if (menu && menu.items) {
       menu.items.forEach(translateMenuItem);
     }
     return origSetAppMenu.call(this, menu);
   };
 
-  const origBuildTemplate = electron.Menu.buildFromTemplate;
-  electron.Menu.buildFromTemplate = function(template) {
+  const origBuildTemplate = _i18nElectron.Menu.buildFromTemplate;
+  _i18nElectron.Menu.buildFromTemplate = function(template) {
     if (Array.isArray(template)) {
       template.forEach(translateMenuItem);
     }
@@ -182,7 +182,7 @@ if (electron.Menu) {
 }
 
 // 2. Hook Dialog APIs (MessageBox, ErrorBox, OpenDialog, SaveDialog)
-if (electron.dialog) {
+if (_i18nElectron.dialog) {
   function translateDetailBlock(detail) {
     if (!detail || typeof detail !== 'string') return detail;
     if (dialogTextMap[detail]) return dialogTextMap[detail];
@@ -226,40 +226,40 @@ if (electron.dialog) {
     }
   }
 
-  const origShowMessageBox = electron.dialog.showMessageBox;
-  electron.dialog.showMessageBox = function(browserWindow, options) {
+  const origShowMessageBox = _i18nElectron.dialog.showMessageBox;
+  _i18nElectron.dialog.showMessageBox = function(browserWindow, options) {
     const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
     translateDialogOpts(opts);
     return origShowMessageBox.apply(this, arguments);
   };
 
-  const origShowMessageBoxSync = electron.dialog.showMessageBoxSync;
-  electron.dialog.showMessageBoxSync = function(browserWindow, options) {
+  const origShowMessageBoxSync = _i18nElectron.dialog.showMessageBoxSync;
+  _i18nElectron.dialog.showMessageBoxSync = function(browserWindow, options) {
     const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
     translateDialogOpts(opts);
     return origShowMessageBoxSync.apply(this, arguments);
   };
 
-  if (typeof electron.dialog.showOpenDialog === 'function') {
-    const origShowOpenDialog = electron.dialog.showOpenDialog;
-    electron.dialog.showOpenDialog = function(browserWindow, options) {
+  if (typeof _i18nElectron.dialog.showOpenDialog === 'function') {
+    const origShowOpenDialog = _i18nElectron.dialog.showOpenDialog;
+    _i18nElectron.dialog.showOpenDialog = function(browserWindow, options) {
       const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
       translateDialogOpts(opts);
       return origShowOpenDialog.apply(this, arguments);
     };
   }
 
-  if (typeof electron.dialog.showOpenDialogSync === 'function') {
-    const origShowOpenDialogSync = electron.dialog.showOpenDialogSync;
-    electron.dialog.showOpenDialogSync = function(browserWindow, options) {
+  if (typeof _i18nElectron.dialog.showOpenDialogSync === 'function') {
+    const origShowOpenDialogSync = _i18nElectron.dialog.showOpenDialogSync;
+    _i18nElectron.dialog.showOpenDialogSync = function(browserWindow, options) {
       const opts = (typeof browserWindow === 'object' && options) ? options : browserWindow;
       translateDialogOpts(opts);
       return origShowOpenDialogSync.apply(this, arguments);
     };
   }
 
-  const origShowErrorBox = electron.dialog.showErrorBox;
-  electron.dialog.showErrorBox = function(title, content) {
+  const origShowErrorBox = _i18nElectron.dialog.showErrorBox;
+  _i18nElectron.dialog.showErrorBox = function(title, content) {
     const t = dialogTextMap[title] || title;
     const c = dialogTextMap[content] || content;
     return origShowErrorBox.call(this, t, c);
@@ -267,17 +267,17 @@ if (electron.dialog) {
 }
 
 // 3. 主进程与渲染进程安全词库 IPC 桥接 (规避 preload 渲染沙箱无 fs 权限限制)
-const reportedWordsSet = new Set();
-let flushTimer = null;
+const _reportedWordsSet = new Set();
+let _flushTimer = null;
 
-function flushUntranslatedWords() {
-  flushTimer = null;
-  if (reportedWordsSet.size === 0) return;
+function _flushUntranslatedWords() {
+  _flushTimer = null;
+  if (_reportedWordsSet.size === 0) return;
   try {
     let existing = [];
-    if (fs.existsSync(UNTRANSLATED_FILE)) {
+    if (_i18nFs.existsSync(_I18N_UNTRANSLATED_FILE)) {
       try {
-        existing = JSON.parse(fs.readFileSync(UNTRANSLATED_FILE, 'utf-8'));
+        existing = JSON.parse(_i18nFs.readFileSync(_I18N_UNTRANSLATED_FILE, 'utf-8'));
         if (!Array.isArray(existing)) existing = [];
       } catch (_) {
         existing = [];
@@ -285,33 +285,33 @@ function flushUntranslatedWords() {
     }
     const merged = new Set(existing);
     let added = 0;
-    for (const w of reportedWordsSet) {
+    for (const w of _reportedWordsSet) {
       if (!merged.has(w) && !menuTranslationMap[w] && !dialogTextMap[w]) {
         merged.add(w);
         added++;
       }
     }
-    reportedWordsSet.clear();
+    _reportedWordsSet.clear();
     if (added > 0 && merged.size <= 2000) {
-      fs.writeFileSync(UNTRANSLATED_FILE, JSON.stringify(Array.from(merged), null, 2), 'utf-8');
+      _i18nFs.writeFileSync(_I18N_UNTRANSLATED_FILE, JSON.stringify(Array.from(merged), null, 2), 'utf-8');
     }
   } catch (_) {}
 }
 
-if (electron.ipcMain) {
-  electron.ipcMain.on('i18n:get-custom-dict', (event) => {
+if (_i18nElectron.ipcMain) {
+  _i18nElectron.ipcMain.on('i18n:get-custom-dict', (event) => {
     event.returnValue = loadCustomDict();
   });
 
-  electron.ipcMain.on('i18n:report-untranslated', (_event, words) => {
+  _i18nElectron.ipcMain.on('i18n:report-untranslated', (_event, words) => {
     if (!Array.isArray(words)) return;
     for (const w of words) {
       if (typeof w === 'string' && w.length >= 2 && w.length <= 90) {
-        reportedWordsSet.add(w);
+        _reportedWordsSet.add(w);
       }
     }
-    if (reportedWordsSet.size > 0 && !flushTimer) {
-      flushTimer = setTimeout(flushUntranslatedWords, 3000);
+    if (_reportedWordsSet.size > 0 && !_flushTimer) {
+      _flushTimer = setTimeout(_flushUntranslatedWords, 3000);
     }
   });
 }
