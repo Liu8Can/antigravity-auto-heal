@@ -1,393 +1,209 @@
 // Antigravity Silent Auto-Healing Daemon
-// Inspects installed app.asar; if official updater replaced it, silently patches in-place.
+// Inspects the installed app.asar; if the official updater replaced it (or the local engine/dictionary
+// changed since the last build), rebuilds the localized archive from the pristine backup, in-process.
 // In background, spawns harvester.py to discover and translate new words.
+//
+// Flags:
+//   --from-launcher   invoked by the .bat launcher right before starting the app
+//   --force           rebuild even if the installed build is up to date
+//   --replace-live    overwrite app.asar even while Antigravity is running (not recommended)
+//   --status          print the detected state and exit without changing anything
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
+const patcher = require('./lib/patcher');
 
 const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local');
-const DEFAULT_PROGRAM_DIR = path.join(localAppData, 'Programs', 'antigravity');
-const RES_DIR = path.join(DEFAULT_PROGRAM_DIR, 'resources');
+const RES_DIR = path.join(localAppData, 'Programs', 'antigravity', 'resources');
 const ASAR_PATH = process.env.ANTIGRAVITY_ASAR || path.join(RES_DIR, 'app.asar');
-const ASAR_BAK = process.env.ANTIGRAVITY_ASAR_BAK || path.join(RES_DIR, 'app.asar.bak');
-const UNPACKED_SOURCE = path.join(path.dirname(ASAR_PATH), 'app.asar.unpacked');
-const UNTRANSLATED_FILE = path.join(RES_DIR, 'i18n_untranslated.json');
+const ASAR_BAK = process.env.ANTIGRAVITY_ASAR_BAK || path.join(path.dirname(ASAR_PATH), 'app.asar.bak');
+const DATA_DIR = path.join(process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming'), 'Antigravity', 'i18n');
+const UNTRANSLATED_FILE = path.join(DATA_DIR, 'untranslated.json');
 const TOOL_DIR = __dirname;
-const ENGINE_PATH = path.join(TOOL_DIR, 'runtime', 'engine.js');
-const MAIN_HOOK_PATH = path.join(TOOL_DIR, 'runtime', 'main-hook.js');
 const HARVESTER_PY = path.join(TOOL_DIR, 'harvester.py');
-const MARKER_FILE = path.join(TOOL_DIR, '.new_words_ready');
 const STAGED_ASAR = path.join(TOOL_DIR, 'staged.asar');
+const LEGACY_MARKER_FILE = path.join(TOOL_DIR, '.new_words_ready');
 
-function isAntigravityRunning() {
+const TAG = '[自动汉化自愈]';
+const args = new Set(process.argv.slice(2));
+
+function tasklistHas(imageName) {
   try {
-    const out = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { stdio: 'pipe', windowsHide: true }).toString();
-    return out.toLowerCase().includes('antigravity.exe');
+    const out = execSync(`tasklist /FI "IMAGENAME eq ${imageName}" /NH`, { stdio: 'pipe', windowsHide: true }).toString();
+    return out.toLowerCase().includes(imageName.toLowerCase());
   } catch (_) {
     return false;
   }
 }
 
-function isWindowOpen() {
-  try {
-    const out = execSync('tasklist /FI "IMAGENAME eq language_server.exe" /NH', { stdio: 'pipe', windowsHide: true }).toString();
-    return out.toLowerCase().includes('language_server.exe');
-  } catch (_) {
-    return false;
-  }
+const isAntigravityRunning = () => tasklistHas('Antigravity.exe');
+// language_server.exe only lives while a window is open; a lone Antigravity.exe is the tray ghost.
+const isWindowOpen = () => tasklistHas('language_server.exe');
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-function killTrayOrUnlocalizedProcess() {
+function killAntigravity() {
   try {
     execSync('taskkill /F /IM Antigravity.exe /T', { stdio: 'ignore', windowsHide: true });
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 350);
   } catch (_) {}
-}
-
-function isLocalized(asarPath) {
-  if (!fs.existsSync(asarPath)) return false;
-  try {
-    const fd = fs.openSync(asarPath, 'r');
-    const headerBuf = Buffer.alloc(16);
-    fs.readSync(fd, headerBuf, 0, 16, 0);
-    const jsonLen = headerBuf.readUInt32LE(12);
-    if (jsonLen <= 0 || jsonLen > 10 * 1024 * 1024) {
-      fs.closeSync(fd);
-      return false;
-    }
-    const jsonBuf = Buffer.alloc(jsonLen);
-    fs.readSync(fd, jsonBuf, 0, jsonLen, 16);
-    fs.closeSync(fd);
-
-    const header = JSON.parse(jsonBuf.toString('utf-8'));
-    const preloadNode = header?.files?.dist?.files?.['preload.js'];
-    if (preloadNode && preloadNode.size > 50000) {
-      return true; // Already localized
-    }
-  } catch (e) {
-    return false;
-  }
-  return false;
-}
-
-function patchInPlace() {
-  const workDir = path.join(TOOL_DIR, 'heal_work');
-  if (fs.existsSync(workDir)) {
-    fs.rmSync(workDir, { recursive: true, force: true });
-  }
-  fs.mkdirSync(workDir, { recursive: true });
-
-  const extractDir = path.join(workDir, 'extracted');
-  const tempAsar = path.join(workDir, 'temp.asar');
-
-  // 防御规则 1：优先以官方原生备份 app.asar.bak 为解包基准源，彻底杜绝在已注入文件上二次追加代码
-  const sourceAsar = fs.existsSync(ASAR_BAK) ? ASAR_BAK : ASAR_PATH;
-  const companionUnpacked = `${sourceAsar}.unpacked`;
-  let createdCompanion = false;
-
-  if (!fs.existsSync(companionUnpacked) && fs.existsSync(UNPACKED_SOURCE)) {
-    try {
-      fs.symlinkSync(UNPACKED_SOURCE, companionUnpacked, 'junction');
-      createdCompanion = true;
-    } catch (_) {}
-  }
-
-  try {
-    // 1. 解包
-    execSync(`npx --yes @electron/asar extract "${sourceAsar}" "${extractDir}"`, {
-      stdio: 'ignore',
-      cwd: workDir
-    });
-
-    // 2. 注入 preload.js & wizardPreload.js (带幂等防护)
-    const engineCode = fs.readFileSync(ENGINE_PATH, 'utf-8').trim();
-
-    const preloadPath = path.join(extractDir, 'dist', 'preload.js');
-    if (fs.existsSync(preloadPath)) {
-      let pContent = fs.readFileSync(preloadPath, 'utf-8');
-      if (!pContent.includes('// Antigravity 2.0 Chinese Localization Engine')) {
-        pContent = pContent.trim() + '\n\n' + engineCode + '\n';
-        fs.writeFileSync(preloadPath, pContent, 'utf-8');
-      }
-    }
-
-    const wizPreloadPath = path.join(extractDir, 'dist', 'ideInstall', 'wizardPreload.js');
-    if (fs.existsSync(wizPreloadPath)) {
-      let wContent = fs.readFileSync(wizPreloadPath, 'utf-8');
-      if (!wContent.includes('// Antigravity 2.0 Chinese Localization Engine')) {
-        wContent = wContent.trim() + '\n\n' + engineCode + '\n';
-        fs.writeFileSync(wizPreloadPath, wContent, 'utf-8');
-      }
-    }
-
-    // 3. 注入 menu.js (带严格的唯一性防护，彻底防止 Identifier has already been declared)
-    const menuPath = path.join(extractDir, 'dist', 'menu.js');
-    if (fs.existsSync(menuPath)) {
-      let mContent = fs.readFileSync(menuPath, 'utf-8');
-      if (!mContent.includes('const menuTranslationMap')) {
-        mContent = mContent.replace(
-          'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel);',
-          'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel || (submenuLabel === "File" && item.label === "文件"));'
-        );
-        mContent = mContent.replace(
-          'electron_1.Menu.setApplicationMenu(menu);',
-          'if (typeof translateMenu === "function") { menu.items.forEach(translateMenu); } electron_1.Menu.setApplicationMenu(menu);'
-        );
-        if (fs.existsSync(MAIN_HOOK_PATH)) {
-          mContent = mContent.trim() + '\n\n' + fs.readFileSync(MAIN_HOOK_PATH, 'utf-8') + '\n';
-        }
-        fs.writeFileSync(menuPath, mContent, 'utf-8');
-      }
-    }
-
-    // 4. 注入 tray.js
-    const trayPath = path.join(extractDir, 'dist', 'tray.js');
-    if (fs.existsSync(trayPath)) {
-      let tContent = fs.readFileSync(trayPath, 'utf-8');
-      if (!tContent.includes('translatedActions')) {
-        tContent = tContent.replace(
-          'contextMenu = electron_1.Menu.buildFromTemplate(actions);',
-          `const translatedActions = actions.map(action => {
-            if (action.label === 'Quit Antigravity') return { ...action, label: '退出 Antigravity' };
-            if (action.label === 'New Window') return { ...action, label: '新建窗口' };
-            return action;
-          });
-          contextMenu = electron_1.Menu.buildFromTemplate(translatedActions);`
-        );
-        tContent = tContent.replace("' agent' +", "' 个智能体正在运行';");
-        tContent = tContent.replace(
-          "(count === 1 ? '' : 's') +\n                    ' running';",
-          "if (count <= 0) countItem.label = '无正在运行的智能体';"
-        );
-        fs.writeFileSync(trayPath, tContent, 'utf-8');
-      }
-    }
-
-    // 5. 注入系统原生弹窗与文案
-    const ipcPath = path.join(extractDir, 'dist', 'ipcHandlers.js');
-    if (fs.existsSync(ipcPath)) {
-      let ipc = fs.readFileSync(ipcPath, 'utf-8');
-      ipc = ipc.replace("title: 'Open workspace'", "title: '打开工作区'");
-      ipc = ipc.replace("title: 'Open workspaces'", "title: '打开工作区'");
-      ipc = ipc.replace("title: 'Select Download Folder'", "title: '选择下载文件夹'");
-      ipc = ipc.replace("message: 'Folder is on the Windows filesystem'", "message: '文件夹位于 Windows 文件系统'");
-      fs.writeFileSync(ipcPath, ipc, 'utf-8');
-    }
-
-    const updPath = path.join(extractDir, 'dist', 'updater.js');
-    if (fs.existsSync(updPath)) {
-      let upd = fs.readFileSync(updPath, 'utf-8');
-      upd = upd.replace("title: 'Check for Updates'", "title: '检查更新'");
-      upd = upd.replace("message: 'No updates available'", "message: '当前已是最新版本，暂无可用更新。'");
-      upd = upd.replace("buttons: ['OK']", "buttons: ['确定']");
-      fs.writeFileSync(updPath, upd, 'utf-8');
-    }
-
-    const mainPath = path.join(extractDir, 'dist', 'main.js');
-    if (fs.existsSync(mainPath)) {
-      let main = fs.readFileSync(mainPath, 'utf-8');
-      main = main.replace("title: 'Confirm Quit'", "title: '确认退出'");
-      main = main.replace("message: 'Are you sure you want to quit?'", "message: '您确定要退出吗？'");
-      main = main.replace("detail: 'There may be agents or background tasks running.'", "detail: '可能有智能体或后台任务正在运行。'");
-      main = main.replace("buttons: ['Cancel', 'Quit']", "buttons: ['取消', '退出']");
-      main = main.replace("label: 'New Window'", "label: '新建窗口'");
-      main = main.replace("detail: 'Antigravity opened on Windows instead.'", "detail: 'Antigravity 已改为在 Windows 本地打开。'");
-      fs.writeFileSync(mainPath, main, 'utf-8');
-    }
-
-    const webauthnPath = path.join(extractDir, 'dist', 'webauthn.js');
-    if (fs.existsSync(webauthnPath)) {
-      let auth = fs.readFileSync(webauthnPath, 'utf-8');
-      auth = auth.replace("title: 'Choose a Passkey'", "title: '选择通行密钥'");
-      auth = auth.replace("detail: 'Select a passkey account to continue:'", "detail: '选择一个通行密钥账号以继续：'");
-      auth = auth.replace("buttons: [...accountLabels, 'Cancel']", "buttons: [...accountLabels, '取消']");
-      fs.writeFileSync(webauthnPath, auth, 'utf-8');
-    }
-
-    const devChooserPath = path.join(extractDir, 'dist', 'deviceChooser.js');
-    if (fs.existsSync(devChooserPath)) {
-      let dev = fs.readFileSync(devChooserPath, 'utf-8');
-      dev = dev.replace("title: 'Connect a device'", "title: '连接设备'");
-      dev = dev.replace("'Select a device:'", "'请选择一个设备：'");
-      dev = dev.replace("'No compatible devices found.'", "'未找到兼容的设备。'");
-      dev = dev.replace("buttons: [...snapshot.map(({ label }) => label), 'Cancel']", "buttons: [...snapshot.map(({ label }) => label), '取消']");
-      fs.writeFileSync(devChooserPath, dev, 'utf-8');
-    }
-
-    const popupSecPath = path.join(extractDir, 'dist', 'webviewPopupSecurity.js');
-    if (fs.existsSync(popupSecPath)) {
-      let sec = fs.readFileSync(popupSecPath, 'utf-8');
-      sec = sec.replace("label: 'Connection info…'", "label: '连接信息…'");
-      sec = sec.replace("title: 'Connection info'", "title: '连接信息'");
-      sec = sec.replace("buttons: ['OK']", "buttons: ['确定']");
-      fs.writeFileSync(popupSecPath, sec, 'utf-8');
-    }
-
-    // 防御规则 2：打包前强制执行语法门禁 (node --check)，若有任何语法错误则立刻熔断退出，绝不写坏主文件
-    const filesToCheck = [preloadPath, wizPreloadPath, menuPath, trayPath, ipcPath, updPath, mainPath, webauthnPath, devChooserPath, popupSecPath];
-    for (const f of filesToCheck) {
-      if (fs.existsSync(f)) {
-        try {
-          execSync(`node --check "${f}"`, { stdio: 'pipe' });
-        } catch (checkErr) {
-          console.error(`[自动汉化自愈] 语法门禁拦截到错误 (${path.basename(f)}):`, checkErr.stderr ? checkErr.stderr.toString() : checkErr.message);
-          fs.rmSync(workDir, { recursive: true, force: true });
-          return false;
-        }
-      }
-    }
-
-    // 6. 重新打包
-    execSync(`npx --yes @electron/asar pack "${extractDir}" "${tempAsar}" --unpack-dir "**/chrome-devtools-mcp/**"`, {
-      stdio: 'ignore',
-      cwd: workDir
-    });
-
-    // 7. 安全覆盖：
-    // - 若用户已点右上角 X 关闭窗口（language_server.exe 已退出，仅剩系统托盘后台驻留的 Antigravity.exe 幽灵进程），
-    //   或当前为官方更新后的未汉化状态且由启动器（--from-launcher）拉起，则自动清理残留进程后直接写入 app.asar！
-    // - 若当前有活动窗口正在运行（如在终端内调用），为保护内存 ASAR 偏移索引，输出为预构建包 staged.asar。
-    const fromLauncher = process.argv.includes('--from-launcher');
-    const wasLocalized = isLocalized(ASAR_PATH);
-    if (isAntigravityRunning()) {
-      if (!isWindowOpen() || (fromLauncher && !wasLocalized)) {
-        killTrayOrUnlocalizedProcess();
-      }
-    }
-
-    const isStillRunning = isAntigravityRunning();
-    if (isStillRunning && !process.argv.includes('--replace-live')) {
-      try {
-        fs.copyFileSync(tempAsar, STAGED_ASAR);
-      } catch (_) {}
-      console.log('[自动汉化自愈] 检测到 Antigravity 活动窗口正在运行，为保护内存 ASAR 偏移索引，已生成预构建包 staged.asar（关闭窗口重新启动时毫秒级替换生效）。');
-      fs.rmSync(workDir, { recursive: true, force: true });
-      return false;
-    }
-
-    try {
-      fs.copyFileSync(tempAsar, ASAR_PATH);
-      if (fs.existsSync(STAGED_ASAR)) {
-        try { fs.unlinkSync(STAGED_ASAR); } catch (_) {}
-      }
-    } catch (copyErr) {
-      if (copyErr.code === 'EBUSY' || copyErr.code === 'EPERM') {
-        try {
-          fs.copyFileSync(tempAsar, STAGED_ASAR);
-        } catch (_) {}
-        console.log('[自动汉化自愈] 提示：检测到主程序正在运行，已生成预构建包 staged.asar，将在下次关闭重启时毫秒级替换生效。');
-        fs.rmSync(workDir, { recursive: true, force: true });
-        return false;
-      }
-      throw copyErr;
-    }
-    fs.rmSync(workDir, { recursive: true, force: true });
-    return true;
-  } catch (err) {
-    console.error('[自动汉化自愈] 自动修补发生异常: ' + err.message);
-    if (fs.existsSync(workDir)) {
-      try { fs.rmSync(workDir, { recursive: true, force: true }); } catch (_) {}
-    }
-    return false;
-  } finally {
-    if (createdCompanion && fs.existsSync(companionUnpacked)) {
-      try { fs.unlinkSync(companionUnpacked); } catch (_) {}
-    }
-  }
+  // Wait (max ~2s) for the process to exit and release its handle on app.asar.
+  for (let i = 0; i < 20 && isAntigravityRunning(); i++) sleep(100);
+  sleep(150);
 }
 
 function spawnHarvester() {
   try {
-    const child = spawn('python', [HARVESTER_PY], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true
-    });
+    const child = spawn('python', [HARVESTER_PY], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
     child.unref();
   } catch (_) {}
 }
 
-function heal() {
-  if (!fs.existsSync(ASAR_PATH)) {
-    return;
-  }
+function removeQuietly(file) {
+  try { if (fs.existsSync(file)) fs.unlinkSync(file); } catch (_) {}
+}
 
-  const forceHeal = process.argv.includes('--force');
-  const fromLauncher = process.argv.includes('--from-launcher');
-  const alreadyLocalized = isLocalized(ASAR_PATH);
-
-  // 场景 0：若存在已预构建好的 staged.asar（且比当前 app.asar 更新）
-  if (fs.existsSync(STAGED_ASAR) && !forceHeal && isLocalized(STAGED_ASAR)) {
-    let stagedIsNewer = true;
-    try {
-      stagedIsNewer = fs.statSync(STAGED_ASAR).mtimeMs >= fs.statSync(ASAR_PATH).mtimeMs;
-    } catch (_) {}
-
-    if (stagedIsNewer) {
-      // 如果用户已关闭窗口（仅剩系统托盘驻留进程），或从启动器拉起以应用新包，自动终止残留进程以确保新包挂载生效
-      if (isAntigravityRunning() && (!isWindowOpen() || fromLauncher)) {
-        killTrayOrUnlocalizedProcess();
-      }
-      if (!isAntigravityRunning()) {
-        try {
-          if (!alreadyLocalized) {
-            try { fs.copyFileSync(ASAR_PATH, ASAR_BAK); } catch (_) {}
-          }
-          fs.copyFileSync(STAGED_ASAR, ASAR_PATH);
-          fs.unlinkSync(STAGED_ASAR);
-          if (fs.existsSync(MARKER_FILE)) {
-            try { fs.unlinkSync(MARKER_FILE); } catch (_) {}
-          }
-          console.log('[自动汉化自愈] 预构建包 staged.asar 已毫秒级替换生效！');
-          if (fs.existsSync(UNTRANSLATED_FILE)) {
-            spawnHarvester();
-          }
-          return;
-        } catch (_) {
-          return;
-        }
-      }
-    } else {
-      // 若 app.asar 比 staged.asar 更新（说明官方刚推送了更新），删除过期的旧版 staged.asar，走下方全新解包构建流程
-      try { fs.unlinkSync(STAGED_ASAR); } catch (_) {}
-    }
-  }
-  if (!alreadyLocalized || forceHeal) {
-    if (!alreadyLocalized) {
-      console.log('[自动汉化自愈] 检测到官方刚刚推送了新版本更新！');
-      console.log('[自动汉化自愈] 正在执行无感静默保底汉化 (约需 1~2 秒)...');
-      // 备份官方全新未修改的包作为基准源
-      try {
-        fs.copyFileSync(ASAR_PATH, ASAR_BAK);
-      } catch (_) {}
-    } else {
-      console.log('[自动汉化自愈] 正在基于官方原版备份重构建汉化引擎...');
-    }
-
-    // 执行就地注入
-    patchInPlace();
-
-    // 在后台无声拉起采集挖掘器（不阻塞启动）
-    spawnHarvester();
-    return;
-  }
-
-  // 场景 2：已有汉化，检查运行期是否采集到了新的未翻译 UI 词条，若有则在后台翻译并写入外部热加载词库
-  if (fs.existsSync(UNTRANSLATED_FILE)) {
-    spawnHarvester();
-  }
-
-  // 场景 3：若有旧版遗留标记文件，清理或按需升级
-  if (fs.existsSync(MARKER_FILE)) {
-    console.log('[自动汉化自愈] 发现后台智能体已完成新词自动挖掘与翻译，正在静默升级词典...');
-    const ok = patchInPlace();
-    if (ok) {
-      try { fs.unlinkSync(MARKER_FILE); } catch (_) {}
-      console.log('[自动汉化自愈] 新词典已就地热升级生效！');
-    }
+function appVersionOf(asarPath) {
+  try {
+    const { files } = require('./lib/asar').peek(asarPath, ['package.json']);
+    return JSON.parse(files['package.json'].toString('utf-8')).version || '';
+  } catch (_) {
+    return '';
   }
 }
 
-heal();
+function heal() {
+  const cur = patcher.inspect(ASAR_PATH);
+  const toolHash = patcher.currentToolHash();
+
+  if (args.has('--status')) {
+    console.log(JSON.stringify({
+      asar: ASAR_PATH, installed: cur, backup: patcher.inspect(ASAR_BAK), staged: patcher.inspect(STAGED_ASAR),
+      toolHash, upToDate: cur.state === 'localized' && cur.stamp.tool === toolHash,
+      running: isAntigravityRunning(), windowOpen: isWindowOpen()
+    }, null, 2));
+    return;
+  }
+
+  if (cur.state === 'missing') return;
+  if (cur.state === 'invalid') {
+    console.error(`${TAG} 无法解析 app.asar (${cur.error})，已跳过。`);
+    return;
+  }
+
+  removeQuietly(LEGACY_MARKER_FILE);
+  const force = args.has('--force');
+  const fromLauncher = args.has('--from-launcher');
+
+  // Fast path: installed build is localized with the current engine + dictionary.
+  if (cur.state === 'localized' && cur.stamp.tool === toolHash && !force) {
+    removeQuietly(STAGED_ASAR);
+    if (fs.existsSync(UNTRANSLATED_FILE)) spawnHarvester();
+    return;
+  }
+
+  // Defence rule 1: the pristine official archive is the only source we ever inject into.
+  if (cur.state === 'pristine') {
+    console.log(`${TAG} 检测到官方刚刚推送了新版本更新，正在刷新纯净母本...`);
+    try {
+      fs.copyFileSync(ASAR_PATH, ASAR_BAK);
+    } catch (e) {
+      console.error(`${TAG} 无法备份官方原版 (${e.message})，为安全起见中止。`);
+      return;
+    }
+  } else {
+    console.log(`${TAG} 汉化引擎或词典已更新，正在基于官方原版备份重新构建...`);
+  }
+
+  const bak = patcher.inspect(ASAR_BAK);
+  if (bak.state !== 'pristine') {
+    console.error(`${TAG} 找不到可用的官方原版备份 app.asar.bak (状态: ${bak.state})，无法重建。` +
+      '请等待下次官方更新，或重新安装 Antigravity 后再运行。');
+    return;
+  }
+  const bakId = patcher.sourceIdOf(ASAR_BAK);
+  // The backup must belong to the installed version, otherwise we would downgrade the app.
+  if (cur.state === 'localized' && cur.stamp.source && cur.stamp.source !== bakId) {
+    console.error(`${TAG} 备份 app.asar.bak 与当前安装的版本不一致，已跳过重建以免降级。`);
+    return;
+  }
+  if (cur.state === 'legacy') {
+    const a = appVersionOf(ASAR_PATH);
+    const b = appVersionOf(ASAR_BAK);
+    if (a && b && a !== b) {
+      console.error(`${TAG} 备份版本 (${b}) 与当前安装版本 (${a}) 不一致，已跳过重建以免降级。`);
+      return;
+    }
+  }
+
+  // Reuse a previously staged build when it matches both the current tool and the current source.
+  let buffer = null;
+  let fromStaged = false;
+  const staged = patcher.inspect(STAGED_ASAR);
+  if (!force && staged.state === 'localized' && staged.stamp.tool === toolHash && staged.stamp.source === bakId) {
+    try {
+      buffer = fs.readFileSync(STAGED_ASAR);
+      fromStaged = true;
+    } catch (_) {}
+  }
+  if (!buffer) {
+    try {
+      const t0 = Date.now();
+      const built = patcher.buildLocalized(ASAR_BAK);
+      buffer = built.buffer;
+      console.log(`${TAG} 已完成注入与语法校验 (${built.report.length} 个文件, ${Date.now() - t0} ms, Antigravity ${built.stamp.appVersion || '?'})。`);
+    } catch (e) {
+      // Defence rule 2/3: any failure (including the syntax gate) leaves the installed app untouched.
+      console.error(`${TAG} 构建失败，未改动主程序: ${e.message}`);
+      return;
+    }
+  }
+
+  // Safe replacement:
+  // - only the tray ghost is left (window closed), or the launcher is starting a not-yet-localized build:
+  //   terminate leftovers and write app.asar directly;
+  // - a live window is open: never swap the archive under a running process (in-memory ASAR offsets
+  //   would be corrupted) — stage the build and apply it on the next launch.
+  if (isAntigravityRunning()) {
+    if (!isWindowOpen() || (fromLauncher && cur.state === 'pristine')) killAntigravity();
+  }
+
+  const stage = (why) => {
+    if (!fromStaged) {
+      try { fs.writeFileSync(STAGED_ASAR, buffer); } catch (_) {}
+    }
+    console.log(`${TAG} ${why}，已生成预构建包 staged.asar，将在关闭 Antigravity 后下次启动时自动替换生效。`);
+  };
+
+  if (isAntigravityRunning() && !args.has('--replace-live')) {
+    stage('检测到 Antigravity 窗口正在运行');
+    return;
+  }
+
+  try {
+    patcher.writeFileAtomic(ASAR_PATH, buffer);
+  } catch (e) {
+    if (e.code === 'EBUSY' || e.code === 'EPERM' || e.code === 'EACCES') {
+      stage('app.asar 正被占用');
+      return;
+    }
+    console.error(`${TAG} 写入 app.asar 失败: ${e.message}`);
+    return;
+  }
+  removeQuietly(STAGED_ASAR);
+  console.log(`${TAG} 汉化已就地生效${fromStaged ? ' (来自预构建包)' : ''}。`);
+
+  // Harvest new strings in the background (never blocks startup).
+  spawnHarvester();
+}
+
+try {
+  heal();
+} catch (e) {
+  // The launcher must always go on to start the app, whatever happens here.
+  console.error(`${TAG} 发生未预期的异常，已跳过: ${e && e.message}`);
+}

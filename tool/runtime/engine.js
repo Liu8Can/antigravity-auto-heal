@@ -9,13 +9,8 @@
     'Invalid Worker outcome': '无效的 Worker 结果',
     'Quote': '引用',
     'Script execution failed': '脚本执行失败',
-    'Script return value exceeded maximum size (': '脚本返回值超出最大大小（',
 
     // [Auto-Harvested New Words]
-    'The WSL distro': 'WSL 发行版',
-    'Antigravity opened on Windows instead.': '相反，反重力在 Windows 上打开。',
-    'Sign in to ${rpLabel}': '登录到${rpLabel}',
-    'Open ${electron_1.app.getName()}': '打开 ${ Electron_1.app.getName()}',
 
     // Antigravity 2.27.0 Additions
     'Choose a Passkey': '选择通行密钥',
@@ -3893,6 +3888,172 @@
     "These settings can only be changed on the computer running the app, not from a remote session.": "这些设置仅可在运行该应用的本地电脑上修改，无法在远程会话中更改。",
     "The app is currently connected to a WSL distro. Reopening locally relaunches it directly on Windows.": "当前应用已连接至 WSL 发行版。选择在本地重新打开将直接在 Windows 环境中重启应用。",
 
+    // Antigravity 2.31.0 Additions (bundle-harvested, hand-translated)
+    "Agent said": "智能体说",
+    "Agent working": "智能体工作中",
+    "You said": "你说",
+    "Mute Voice Mic": "静音语音麦克风",
+    "Mute Voice Speaker": "静音语音扬声器",
+    "Start Voice mode": "开始语音模式",
+    "End Voice mode": "结束语音模式",
+    "Voice speed": "语音速度",
+    "Archive / Restore": "归档 / 恢复",
+    "Mark All as Read": "全部标为已读",
+    "File Explorer": "文件资源管理器",
+    "File explorer": "文件资源管理器",
+    "Seek": "跳转",
+    "Playback speed (< / >)": "播放速度 (< / >)",
+    "Zoom": "缩放",
+    "Zoom out (-)": "缩小 (-)",
+    "Reset zoom (0)": "重置缩放 (0)",
+    "Close (Esc)": "关闭 (Esc)",
+    "Dev mode: Localhost server automatically detected": "开发模式：已自动检测到本地服务器",
+    "Critique": "评审",
+    "Members": "成员",
+    "From": "来自",
+    "Author": "作者",
+    "Failed to read file": "读取文件失败",
+    "Cut": "剪切",
+    "Paste": "粘贴",
+    "Address bar": "地址栏",
+    "Remove from history": "从历史记录中移除",
+    "Remove from history (Shift+Delete)": "从历史记录中移除 (Shift+Delete)",
+    "Reload": "重新加载",
+    "Remove from list": "从列表中移除",
+    "Forward": "前进",
+    "Copy Image Address": "复制图片地址",
+    "Embedded web preview": "内嵌网页预览",
+    "Europe": "欧洲",
+    "Dismiss": "关闭",
+    "Toggle Google Cloud projects": "切换 Google Cloud 项目",
+    "Device Name": "设备名称",
+    "Search flags": "搜索标志",
+    "Auto (detected)": "自动 (已检测)",
+    "Web (desktop)": "网页 (桌面端)",
+    "Web (desktop, PWA)": "网页 (桌面端，PWA)",
+    "Web (mobile)": "网页 (移动端)",
+    "Web (mobile, PWA)": "网页 (移动端，PWA)",
+    "User Type": "用户类型",
+    "Edit Shortcut": "编辑快捷键",
+    "Add Shortcut": "添加快捷键",
+    "Remove Shortcut": "移除快捷键",
+    "Reset to Default": "恢复默认",
+    "Search shortcuts": "搜索快捷键",
+    "Reset All to Defaults": "全部恢复默认",
+    "Reset all shortcuts to defaults": "将所有快捷键恢复为默认设置",
+    "Dismiss error": "关闭错误提示",
+    "Refresh MCP servers": "刷新 MCP 服务器",
+    "All tools (*)": "所有工具 (*)",
+    "Browser tools (browser_.*)": "浏览器工具 (browser_.*)",
+    "Add MCP Servers": "添加 MCP 服务器",
+    "Delete MCP Server": "删除 MCP 服务器",
+    "Failed to load resources": "加载资源失败",
+    "Best-of-N Started": "Best-of-N 已启动",
+    "Added (Staged)": "已添加 (已暂存)",
+    "Modified": "已修改",
+    "Added": "已添加",
+    "Modified Files": "已修改的文件",
+    "Import AI Studio Project": "导入 AI Studio 项目",
+    "No Model Selected": "未选择模型",
+    "No Models Available": "没有可用的模型",
+    "Edit Model": "编辑模型",
+    "Before": "之前",
+    "After": "之后",
+    "Full Error": "完整错误信息",
+    "Browser steps": "浏览器步骤",
+    "Browser Use": "浏览器使用",
+    "Failed to start Best of N mode": "启动 Best of N 模式失败",
+    "Failed to proceed": "继续执行失败",
+    "Errors": "错误",
+    "Other": "其他",
+    "Sidecar error": "侧边组件错误",
+    "Optimized for you": "已为你优化",
+    "Stay up to date.": "保持最新。",
+    "Failed to export artifact": "导出工件失败",
+    "Uploaded to Google Drive": "已上传到 Google 云端硬盘",
+    "Failed to upload HTML artifact to Drive": "上传 HTML 工件到云端硬盘失败",
+    "Export as PDF": "导出为 PDF",
+    "File path breadcrumbs": "文件路径导航",
+    "Uploads": "上传",
+    "No uploads": "暂无上传",
+    "Ready": "就绪",
+    "App update required": "需要更新应用",
+    "Website": "网站",
+    "Repository": "代码仓库",
+    "Stopped": "已停止",
+    "Backoff": "退避重试",
+    "Readme": "自述文件",
+    "MCP Restart Error:": "MCP 重启错误：",
+    "Setup required": "需要设置",
+    "Search Google Drive": "搜索 Google 云端硬盘",
+    "Browse MCP resources": "浏览 MCP 资源",
+    "Browse rules": "浏览规则",
+    "Toggle file diff": "切换文件差异",
+    "Filter rows...": "筛选行...",
+    "Filter rows": "筛选行",
+    "Clear row filter": "清除行筛选",
+    "Resume it to load this file.": "恢复后即可加载此文件。",
+    "Filter files...": "筛选文件...",
+    "Filter files": "筛选文件",
+    "Clear file filter": "清除文件筛选",
+    "Custom View": "自定义视图",
+    "Match case": "区分大小写",
+    "Match whole word": "全字匹配",
+    "Restore": "恢复",
+    "Telemetry": "遥测",
+    "Failed to create remote project": "创建远程项目失败",
+    "Drag to resize, double-click to reset": "拖动调整大小，双击重置",
+    "Prompt too simple": "提示词过于简单",
+    "Not suitable for Best-of-N": "不适合 Best-of-N",
+    "Purchase Credits": "购买额度",
+    "Click to copy URL": "点击复制 URL",
+    "Failed to create worktree": "创建工作树失败",
+    "New Worktree": "新建工作树",
+    "Usage": "使用情况",
+    "Drive": "云端硬盘",
+    "Automatically reproduce bugs, trace causes, test fixes.": "自动复现缺陷、追踪原因并测试修复。",
+    "See more results": "查看更多结果",
+    "Blocked": "已阻止",
+    "Goals": "目标",
+    "Trajectory Debug View": "轨迹调试视图",
+    "Previous card": "上一张卡片",
+    "Next card": "下一张卡片",
+    "Dismiss Tip": "关闭提示",
+    "Custom Order": "自定义排序",
+    "Close Tabs to the Left": "关闭左侧标签页",
+    "Add files": "添加文件",
+    "Message this chat": "在此对话中发消息",
+    "Every hour": "每小时",
+    "Every day": "每天",
+    "Every weekday": "每个工作日",
+    "Every week": "每周",
+    "Edit task title": "编辑任务标题",
+    "Where": "位置",
+    "Remove trigger": "移除触发器",
+    "Steps": "步骤",
+    "What should it do?": "它应该做什么？",
+    "Active Skills": "已启用的技能",
+    "Got it": "知道了",
+    "Block": "阻止",
+    "Workflow files": "工作流文件",
+    "Workflow refs": "工作流引用",
+    "More": "更多",
+    "Fit Mode": "适应模式",
+    "Fit to Page": "适应页面",
+    "Fit to Width": "适应宽度",
+    "Commit": "提交",
+    "Failed to Commit": "提交失败",
+    "Push": "推送",
+    "Failed to Push": "推送失败",
+    "Discard": "丢弃",
+    "Table options": "表格选项",
+    "Scrollable table": "可滚动表格",
+    "File Viewer header": "文件查看器标题栏",
+    "File Viewer": "文件查看器",
+    "Current Page": "当前页",
+    "Scroll position": "滚动位置",
+    "Toggle Side Panel": "切换侧边面板",
+
   };
 
   // 通过主进程 IPC 动态加载外部增量词库 (无需重打包 app.asar 即可实时读取新词)
@@ -3963,7 +4124,51 @@
   const escapedCoreUnion = sortedCoreKeys.map(w => escapeRegExp(w)).join('|');
   const CORE_WORDS_UNION_REGEX = new RegExp('\\b(' + escapedCoreUnion + ')\\b', 'gi');
 
+  // 性能优化 7：未命中负缓存。未收录的英文（聊天正文、文件名等）每次重扫都会完整跑一遍
+  // 上百条动态正则；记住“确认无译文”的字符串后，重扫成本降为一次 Set 查询。
+  // 词典热更新（i18n:auto-translated）时必须清空。
+  const missCache = new Set();
+  const MAX_MISS_CACHE = 20000;
+
+  // 2.31.0 动态模式（在主链未命中后执行）
+  const LATE_DYNAMIC_RULES = [
+    [/^(\d+)\s*(s|m|h|d|w|mo|y)\s+ago$/i, (_m, n, u) => n + ' ' + ({ s: '秒', m: '分钟', h: '小时', d: '天', w: '周', mo: '个月', y: '年' })[u.toLowerCase()] + '前'],
+    [/^Turn\s+(\d+)\s+of\s+(\d+)$/i, (_m, a, b) => '第 ' + a + ' / ' + b + ' 回合'],
+    [/^(.*[,，]\s*)(\d+)\s+turns?$/i, (_m, pre, n) => pre + n + ' 个回合'],
+    [/^(\d+)\s+turns?$/i, (_m, n) => n + ' 个回合'],
+    [/^Close\s+(\S+\.\w{1,8})$/, (_m, v) => '关闭 ' + v],
+    [/^No more older messages$/i, () => '没有更早的消息了']
+  ];
+
   function translateString(text) {
+    if (!text) return text;
+    const trimmed = text.trim();
+    if (!trimmed) return text;
+    if (!/[a-zA-Z]/.test(trimmed)) return text;
+    if (missCache.has(trimmed)) return text;
+
+    let result = translateStringCore(text);
+    if (result === text) {
+      for (let i = 0; i < LATE_DYNAMIC_RULES.length; i++) {
+        const rule = LATE_DYNAMIC_RULES[i];
+        if (rule[0].test(trimmed)) {
+          const fixed = trimmed.replace(rule[0], rule[1]);
+          if (fixed !== trimmed) {
+            if (stringCache.size < MAX_STRING_CACHE) stringCache.set(trimmed, fixed);
+            result = text.replace(trimmed, () => fixed);
+          }
+          break;
+        }
+      }
+    }
+    if (result === text) {
+      if (missCache.size >= MAX_MISS_CACHE) missCache.clear();
+      missCache.add(trimmed);
+    }
+    return result;
+  }
+
+  function translateStringCore(text) {
     if (!text) return text;
     const trimmed = text.trim();
     if (!trimmed) return text;
@@ -5082,12 +5287,55 @@
 
   const skipCache = new WeakMap();
 
+  // ---- 用户内容保护区 ----
+  // 整块跳过（文本 + 属性）：文件树、PDF 文本层、数学公式、终端、@ 提及胶囊。
+  // 这些全部是用户数据，名为 tools / logs / Settings 的文件夹绝不能被词典改写。
+  const USER_CONTENT_HARD = '[role="tree"], [role="treeitem"], [data-testid="pdf-text-layer"], .textLayer, .katex, math, .xterm, .context-scope-mention';
+  // 仅跳过文本（按钮的 aria-label / title 仍照常汉化）：AI 回复的 Markdown 正文、
+  // 侧边栏的对话标题与项目名、文件路径面包屑。
+  const AGENT_MARKDOWN = '[data-testid="planner-response-text"], [data-testid="agent-response"] .leading-relaxed.select-text';
+  const userTextCache = new WeakMap();
+
+  function isUserContentText(element) {
+    if (!element || !element.closest) return false;
+    if (userTextCache.has(element)) return userTextCache.get(element);
+    let res = false;
+    try {
+      if (element.closest('[data-testid="breadcrumb-segment"], nav[aria-label="File path breadcrumbs"]')) {
+        res = true;
+      } else if (element.classList && element.classList.contains('truncate') &&
+                 element.closest('[data-testid^="conversation-row"], [data-testid="project-header"]')) {
+        res = true;
+      } else if (element.closest(AGENT_MARKDOWN)) {
+        // Markdown 正文内的功能按钮（复制、表格菜单等）仍属界面文案，放行
+        const btn = element.closest('button');
+        res = !(btn && btn.closest(AGENT_MARKDOWN));
+      }
+    } catch (_) {}
+    userTextCache.set(element, res);
+    return res;
+  }
+
+  // 仅对“叶子级小元素”取文本，避免对大容器调用 innerText 触发整页强制重排
+  function smallLeafText(element) {
+    const kids = element.children;
+    if (!kids || kids.length > 2) return '';
+    for (let i = 0; i < kids.length; i++) {
+      if (kids[i].children && kids[i].children.length > 0) return '';
+    }
+    const t = element.textContent || '';
+    return t.length > 80 ? '' : t.trim();
+  }
+
   function shouldSkipNode(node) {
     if (!node) return true;
-    
+
     // 如果是文本节点，我们检查其父元素；如果是属性/元素节点，检查自身
-    const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    const isTextNode = node.nodeType === Node.TEXT_NODE;
+    const element = isTextNode ? node.parentElement : node;
     if (!element) return false;
+
+    if (isTextNode && isUserContentText(element)) return true;
 
     // 1. 记忆化缓存查询：O(1) 瞬间返回，消除折叠栏展开时的万次重复检查
     if (skipCache.has(element)) {
@@ -5097,6 +5345,11 @@
     // 2. 绝对不能翻译的脚本/样式/按键标签
     const skipTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'KBD', 'SAMP', 'VAR'];
     if (skipTags.includes(element.tagName)) {
+      skipCache.set(element, true);
+      return true;
+    }
+
+    if (element.closest && element.closest(USER_CONTENT_HARD)) {
       skipCache.set(element, true);
       return true;
     }
@@ -5123,8 +5376,8 @@
 
     // 3. 特殊特权放行：针对执行步骤的药丸标签（如 Ran, Explored, Edited, Viewed, Thought, Thinking, Working 等）
     // 无论其父级为 SPAN、CODE 还是 BUTTON，只要是系统执行药丸且不在用户提问气泡内，一律无条件放行汉化
-    const textContent = (element.innerText || element.textContent || '').trim();
-    const isActionPill = textContent.length <= 40 && /^(Explored|Exploring|Ran|Run|Running|Viewed|Viewing|Edited|Editing|Thought|Thinking|Working|Done|Analyzed|Analyzing|Created|Creating|Deleted|Deleting|Waiting|Rejected|Errored|Completed|Used)(\s+(command|commands|files?|tools?|artifacts?))?$/i.test(textContent);
+    const textContent = smallLeafText(element);
+    const isActionPill = textContent.length > 0 && textContent.length <= 40 && /^(Explored|Exploring|Ran|Run|Running|Viewed|Viewing|Edited|Editing|Thought|Thinking|Working|Done|Analyzed|Analyzing|Created|Creating|Deleted|Deleting|Waiting|Rejected|Errored|Completed|Used)(\s+(command|commands|files?|tools?|artifacts?))?$/i.test(textContent);
     if (isActionPill) {
       let inUserInput = false;
       let inThinkingContent = false;
@@ -5284,8 +5537,9 @@
   // 此处改为：用元素整体文本命中整句词典，再用内联元素的锚点文本把译文切回各节点。
   function tryCombinedSentenceTranslation(element) {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    if (element.childNodes.length < 2) return false;
+    if (isUserContentText(element)) return false;
     const children = Array.prototype.slice.call(element.childNodes);
-    if (children.length < 2) return false;
 
     const slots = [];
     for (const child of children) {
@@ -5370,6 +5624,7 @@
         dictionary[en] = zh;
         lowerDictionary.set(en.toLowerCase(), zh);
         stringCache.delete(en);
+        missCache.clear();
         const nodeSet = _untranslatedNodeMap.get(en);
         if (nodeSet) {
           for (const textNode of nodeSet) {
@@ -5398,7 +5653,9 @@
     if (!/[a-z]/.test(trimmed)) return;
     if (/\.[a-zA-Z0-9]{1,5}\b/.test(trimmed)) return; // 排除文件名如 main.js
     const words = trimmed.split(/\s+/);
-    if (words.length < 1 || words.length > 42) return;
+    // 单个单词严禁送机翻：脱离上下文必然歧义（Programs -> 节目、Users -> 用户、人名被音译），
+    // 且多半是文件夹名、用户名等用户数据。单词只走内置词典。
+    if (words.length < 2 || words.length > 42) return;
     // 单词数 <= 2 时排除含数字的型号/版本号及纯专有名词
     if (words.length <= 2) {
       if (/\d/.test(trimmed)) return;
@@ -5416,7 +5673,7 @@
     if (!isUIElement) return;
 
     // 严格排除聊天对话区、AI 思考区、Markdown 渲染区、代码树、模型选择器、等宽路径值与版本号详情
-    if (element.closest && element.closest('.prose, .markdown, pre, code, .font-mono, [data-lexical-editor], .monaco-editor, .xterm, .thought-content, .thinking-content, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"], [data-testid*="value"], [data-testid*="details"], [data-testid*="caption"]')) {
+    if (element.closest && element.closest('.prose, .markdown, pre, code, .font-mono, [data-lexical-editor], .monaco-editor, .xterm, .thought-content, .thinking-content, [data-testid*="conversation"], [data-testid*="file"], [data-testid*="model"], [data-testid*="value"], [data-testid*="details"], [data-testid*="caption"], [data-testid*="breadcrumb"], [data-testid*="pdf"], [data-testid="agent-response"], [data-testid="project-header"], [role="tree"], [role="treeitem"], nav[aria-label*="breadcrumb" i], .katex, .textLayer')) {
       return;
     }
 

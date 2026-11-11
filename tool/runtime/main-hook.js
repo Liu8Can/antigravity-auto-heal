@@ -5,9 +5,28 @@ const _i18nElectron = require('electron');
 const _i18nFs = require('fs');
 const _i18nPath = require('path');
 
-const _I18N_RES_DIR = process.resourcesPath || _i18nPath.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
-const _I18N_CUSTOM_DICT_FILE = _i18nPath.join(_I18N_RES_DIR, 'i18n_custom_dict.json');
-const _I18N_UNTRANSLATED_FILE = _i18nPath.join(_I18N_RES_DIR, 'i18n_untranslated.json');
+// 词库存放在用户数据目录 (%APPDATA%/Antigravity/i18n)。
+// 旧版放在安装目录 resources 下，官方每次更新都会整目录覆盖，积累的词库随之清零。
+function _i18nResolveDataDir() {
+  let base = '';
+  try { base = _i18nElectron.app.getPath('userData'); } catch (_) {}
+  if (!base) base = _i18nPath.join(process.env.APPDATA || '', 'Antigravity');
+  const dir = _i18nPath.join(base, 'i18n');
+  try { _i18nFs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+  return dir;
+}
+const _I18N_DATA_DIR = _i18nResolveDataDir();
+const _I18N_CUSTOM_DICT_FILE = _i18nPath.join(_I18N_DATA_DIR, 'custom_dict.json');
+const _I18N_UNTRANSLATED_FILE = _i18nPath.join(_I18N_DATA_DIR, 'untranslated.json');
+// 关闭在线机翻兜底：设置环境变量 ANTIGRAVITY_I18N_NO_MT=1，或在上述目录放一个名为 no_mt 的空文件
+const _I18N_MT_DISABLED = process.env.ANTIGRAVITY_I18N_NO_MT === '1' || _i18nFs.existsSync(_i18nPath.join(_I18N_DATA_DIR, 'no_mt'));
+
+// 只有多词英文短语才允许进入机翻词库：单个单词脱离上下文必然歧义，
+// 且常常是文件夹名/用户名（Programs -> 节目、Users -> 用户）。模板残片同样拒收。
+function _i18nIsSafeDictKey(k) {
+  return typeof k === 'string' && k.length >= 4 && k.length <= 360 &&
+    /^[A-Z+]/.test(k) && /\s/.test(k.trim()) && !/[${}\\_@]|https?:/.test(k);
+}
 
 const menuTranslationMap = {
   'File': '文件',
@@ -125,13 +144,15 @@ function loadCustomDict() {
     if (_i18nFs.existsSync(_I18N_CUSTOM_DICT_FILE)) {
       const data = JSON.parse(_i18nFs.readFileSync(_I18N_CUSTOM_DICT_FILE, 'utf-8'));
       if (data && typeof data === 'object') {
+        const clean = {};
         for (const [k, v] of Object.entries(data)) {
-          if (k && typeof v === 'string') {
+          if (_i18nIsSafeDictKey(k) && typeof v === 'string' && v) {
+            clean[k] = v;
             if (!menuTranslationMap[k]) menuTranslationMap[k] = v;
             if (!dialogTextMap[k]) dialogTextMap[k] = v;
           }
         }
-        return data;
+        return clean;
       }
     }
   } catch (_) {}
@@ -282,7 +303,10 @@ function _getCachedCustomDict() {
 function _saveCachedCustomDict() {
   if (!_cachedCustomDict) return;
   try {
-    _i18nFs.writeFileSync(_I18N_CUSTOM_DICT_FILE, JSON.stringify(_cachedCustomDict, null, 2), 'utf-8');
+    // 先写临时文件再改名，避免写到一半崩溃留下损坏的 JSON
+    const tmp = _I18N_CUSTOM_DICT_FILE + '.tmp';
+    _i18nFs.writeFileSync(tmp, JSON.stringify(_cachedCustomDict, null, 2), 'utf-8');
+    _i18nFs.renameSync(tmp, _I18N_CUSTOM_DICT_FILE);
   } catch (_) {}
 }
 
@@ -350,12 +374,13 @@ async function _translateSinglePhrase(en) {
 }
 
 async function _autoTranslateBatchAndNotify(sender, words) {
+  if (_I18N_MT_DISABLED) return;
   const dict = _getCachedCustomDict();
   const todo = [];
   for (const raw of words) {
     if (typeof raw !== 'string') continue;
     const w = raw.trim();
-    if (w.length < 2 || w.length > 360) continue;
+    if (!_i18nIsSafeDictKey(w)) continue;
     if (dict[w] || menuTranslationMap[w] || dialogTextMap[w] || _inflightWordsSet.has(w)) continue;
     _inflightWordsSet.add(w);
     todo.push(w);
@@ -462,7 +487,7 @@ if (_i18nElectron.ipcMain) {
   _i18nElectron.ipcMain.on('i18n:report-untranslated', (event, words) => {
     if (!Array.isArray(words)) return;
     for (const w of words) {
-      if (typeof w === 'string' && w.length >= 2 && w.length <= 360) {
+      if (_i18nIsSafeDictKey(w)) {
         _reportedWordsSet.add(w);
       }
     }

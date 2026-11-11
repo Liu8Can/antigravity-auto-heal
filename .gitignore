@@ -14,6 +14,8 @@ harvester_work/
 scan_test/
 *.tmp
 *.bak
+*.i18n-tmp
+__pycache__/
 
 # Logs and runtime markers
 *.log

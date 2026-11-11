@@ -11,33 +11,30 @@ title Antigravity 智能启动器
 :: ==============================================================================
 :: set "CUSTOM_PROXY=http://127.0.0.1:您的代理端口号"
 
-if not "%CUSTOM_PROXY%"=="" (
-    set "HTTP_PROXY=%CUSTOM_PROXY%"
-    set "HTTPS_PROXY=%CUSTOM_PROXY%"
-    set "ALL_PROXY=%CUSTOM_PROXY%"
-    echo [代理模式] 已加载用户手动指定的代理: %CUSTOM_PROXY%
-) else (
-    set "DETECTED_PROXY="
-    for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable 2^>nul') do (
-        if "%%i"=="0x1" (
-            for /f "tokens=3" %%j in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul') do (
-                set "DETECTED_PROXY=%%j"
-            )
-        )
-    )
+:: 注意：以下刻意写成逐行的单行 if，不使用 ( ) 代码块，也不使用 goto。
+:: - cmd 在解析整个 ( ) 块时会一次性展开 %VAR%：旧写法在块内赋值 DETECTED_PROXY 又在同一块内读取，
+::   读到的永远是空值，自动识别实际上从未生效；
+:: - UTF-8 (chcp 65001) 批处理中 goto 跳转标签存在已知的多字节定位错误，因此也不用标签。
+set "PROXY_ENABLED="
+set "DETECTED_PROXY="
+set "PROXY_URL="
+for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable 2^>nul') do set "PROXY_ENABLED=%%i"
+if "%PROXY_ENABLED%"=="0x1" for /f "tokens=3" %%j in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul') do set "DETECTED_PROXY=%%j"
+:: ProxyServer 可能是 "http=127.0.0.1:7890;https=..." 的分协议写法：取第一段，并去掉 "协议=" 与 "http://" 前缀
+if not "%DETECTED_PROXY%"=="" for /f "tokens=1 delims=;" %%k in ("%DETECTED_PROXY%") do set "DETECTED_PROXY=%%k"
+if not "%DETECTED_PROXY%"=="" for /f "tokens=2 delims==" %%k in ("%DETECTED_PROXY%") do set "DETECTED_PROXY=%%k"
+if not "%DETECTED_PROXY%"=="" set "DETECTED_PROXY=%DETECTED_PROXY:http://=%"
+if not "%DETECTED_PROXY%"=="" set "PROXY_URL=http://%DETECTED_PROXY%"
+if not "%CUSTOM_PROXY%"=="" set "PROXY_URL=%CUSTOM_PROXY%"
 
-    if not "%DETECTED_PROXY%"=="" (
-        set "HTTP_PROXY=http://%DETECTED_PROXY%"
-        set "HTTPS_PROXY=http://%DETECTED_PROXY%"
-        set "ALL_PROXY=http://%DETECTED_PROXY%"
-        echo [代理感知] 自动识别并接入正在运行的系统代理: http://%DETECTED_PROXY%
-    ) else (
-        echo [网络环境] 未检测到开启的系统代理，使用原生直连模式。
-    )
-)
+if not "%PROXY_URL%"=="" set "HTTP_PROXY=%PROXY_URL%"
+if not "%PROXY_URL%"=="" set "HTTPS_PROXY=%PROXY_URL%"
+if not "%PROXY_URL%"=="" set "ALL_PROXY=%PROXY_URL%"
+if not "%PROXY_URL%"=="" echo [代理感知] 已接入代理: %PROXY_URL%
+if "%PROXY_URL%"=="" echo [网络环境] 未检测到开启的系统代理，使用原生直连模式。
 
-:: 2. 毫秒级自愈检测 (若检测到官方更新，自动清理残留托盘进程并静默修补后拉起)
-node "%~dp0tool\auto-heal.js" --from-launcher
+:: 2. 自愈检测 (官方更新或汉化引擎有更新时，自动清理残留托盘进程并静默修补；未安装 Node.js 时跳过)
+where node >nul 2>nul && node "%~dp0tool\auto-heal.js" --from-launcher
 
 :: 3. 动态寻找主程序路径并启动 (兼容所有 Windows 用户环境)
 set "APP_EXE=%LOCALAPPDATA%\Programs\antigravity\Antigravity.exe"

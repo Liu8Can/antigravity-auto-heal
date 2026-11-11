@@ -1,7 +1,8 @@
 # Antigravity Autonomous Background String Harvester & Multi-Source Translator
 # 100% Zero-Touch: Extracts new UI strings from official updates AND runtime IPC reports,
 # applies authoritative developer terminology + Google Translate + MyMemory fallback,
-# and writes to both external hot-loadable dictionary (i18n_custom_dict.json) and engine.js.
+# and writes ONLY to the external hot-loadable dictionary (%APPDATA%\Antigravity\i18n\custom_dict.json).
+# engine.js (the hand-curated dictionary, tracked in git) is never modified by machine translation.
 import os
 import sys
 import re
@@ -16,10 +17,11 @@ local_app_data = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~\\AppDat
 default_program_dir = os.path.join(local_app_data, 'Programs', 'antigravity')
 RES_DIR = os.path.join(default_program_dir, 'resources')
 ASAR_BAK = os.environ.get('ANTIGRAVITY_ASAR_BAK') or os.path.join(RES_DIR, 'app.asar.bak')
-CUSTOM_DICT_FILE = os.path.join(RES_DIR, 'i18n_custom_dict.json')
-UNTRANSLATED_FILE = os.path.join(RES_DIR, 'i18n_untranslated.json')
+# Kept in the user-data dir: the install dir (resources/) is wiped by every official update.
+DATA_DIR = os.path.join(os.environ.get('APPDATA') or os.path.expanduser('~\\AppData\\Roaming'), 'Antigravity', 'i18n')
+CUSTOM_DICT_FILE = os.path.join(DATA_DIR, 'custom_dict.json')
+UNTRANSLATED_FILE = os.path.join(DATA_DIR, 'untranslated.json')
 WORK_DIR = os.path.join(TOOL_DIR, 'harvester_work')
-MARKER_FILE = os.path.join(TOOL_DIR, '.new_words_ready')
 LOG_FILE = os.path.join(TOOL_DIR, 'harvester.log')
 
 proxy_url = os.environ.get('HTTP_PROXY') or os.environ.get('http_proxy') or os.environ.get('ALL_PROXY')
@@ -149,6 +151,23 @@ def is_valid_translation(source, trans):
     if not re.search(r'[\u4e00-\u9fa5]', clean):
         return False
     return clean
+
+def is_safe_key(text):
+    # Mirrors _i18nIsSafeDictKey in main-hook.js: multi-word UI phrases only.
+    # Single words are ambiguous out of context and are usually folder/user names
+    # (Programs -> 节目, Users -> 用户); template fragments and truncated strings are rejected too.
+    if not isinstance(text, str):
+        return False
+    t = text.strip()
+    if len(t) < 4 or len(t) > 360 or not re.match(r'^[A-Z+]', t) or not re.search(r'\s', t):
+        return False
+    if re.search(r'[${}\\_@]|https?:', t):
+        return False
+    if re.match(r'^(Hi|Hello|Welcome|Good (morning|afternoon|evening|to see you))\b', t, re.IGNORECASE):
+        return False
+    if t.count('(') != t.count(')') or t.endswith(('(', ',', ' and', ' or', ' the', ' to')):
+        return False
+    return True
 
 def translate_phrase(text):
     # 1. Check authoritative glossary
@@ -334,6 +353,8 @@ def run():
     # Filter out already translated strings
     new_untranslated = []
     for s in sorted(found_strings):
+        if not is_safe_key(s):
+            continue
         if s not in custom_dict and f'"{s}"' not in engine_content and f"'{s}'" not in engine_content:
             new_untranslated.append(s)
 
@@ -358,8 +379,9 @@ def run():
         log("未获取到有效翻译，退出。")
         return
 
-    # 1. Save immediately to external hot-loadable custom_dict.json (0ms load on next launch without repacking app.asar!)
+    # Save to the external hot-loadable dictionary (loaded on next launch, no repack needed)
     try:
+        custom_dict = {k: v for k, v in custom_dict.items() if is_safe_key(k)}
         custom_dict.update(translated_pairs)
         os.makedirs( os.path.dirname(CUSTOM_DICT_FILE), exist_ok=True )
         with open(CUSTOM_DICT_FILE, 'w', encoding='utf-8') as f:
@@ -372,38 +394,6 @@ def run():
     if os.path.exists(UNTRANSLATED_FILE):
         try: os.remove(UNTRANSLATED_FILE)
         except: pass
-
-    # 2. Also merge into engine.js for permanent persistence
-    log(f"正在将 {len(translated_pairs)} 个新翻译词条同步合入 engine.js 源码库...")
-    dict_marker = "const dictionary = {"
-    if dict_marker not in engine_content:
-        log("未找到 dictionary 挂载点，跳过源码合入。")
-        return
-
-    new_entries = "\n    // [Auto-Harvested New Words]\n"
-    for en, zh in translated_pairs.items():
-        safe_en = en.replace("\\", "\\\\").replace("'", "\\'")
-        safe_zh = zh.replace("\\", "\\\\").replace("'", "\\'")
-        new_entries += f"    '{safe_en}': '{safe_zh}',\n"
-
-    new_engine = engine_content.replace(dict_marker, dict_marker + new_entries, 1)
-
-    bak_engine = ENGINE_PATH + ".bak"
-    shutil.copy2(ENGINE_PATH, bak_engine)
-
-    with open(ENGINE_PATH, 'w', encoding='utf-8') as f:
-        f.write(new_engine)
-
-    check = subprocess.run(['node', '--check', ENGINE_PATH], capture_output=True, text=True)
-    if check.returncode == 0:
-        log("AST 语法验证通过 (node --check ALL GREEN)！已完成词典永久合入。")
-        if os.path.exists(bak_engine):
-            os.remove(bak_engine)
-    else:
-        log(f"AST 语法验证失败，自动回滚 engine.js！错误: {check.stderr}")
-        shutil.copy2(bak_engine, ENGINE_PATH)
-        if os.path.exists(bak_engine):
-            os.remove(bak_engine)
 
     log("后台差分自愈流程完成。")
 

@@ -7,7 +7,8 @@
     "heal": "node tool/auto-heal.js",
     "build": "node tool/builder.js",
     "harvest": "python tool/harvester.py",
-    "check": "node --check tool/auto-heal.js && node --check tool/builder.js && node --check tool/runtime/engine.js && node --check tool/runtime/main-hook.js"
+    "status": "node tool/auto-heal.js --status",
+    "check": "node --check tool/auto-heal.js && node --check tool/builder.js && node --check tool/lib/asar.js && node --check tool/lib/patcher.js && node --check tool/runtime/engine.js && node --check tool/runtime/main-hook.js"
   },
   "keywords": [
     "antigravity",
