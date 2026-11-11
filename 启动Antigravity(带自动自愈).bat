@@ -36,8 +36,8 @@ if not "%CUSTOM_PROXY%"=="" (
     )
 )
 
-:: 2. 毫秒级自愈检测 (若检测到官方更新，静默修补后拉起)
-node "%~dp0tool\auto-heal.js"
+:: 2. 毫秒级自愈检测 (若检测到官方更新，自动清理残留托盘进程并静默修补后拉起)
+node "%~dp0tool\auto-heal.js" --from-launcher
 
 :: 3. 动态寻找主程序路径并启动 (兼容所有 Windows 用户环境)
 set "APP_EXE=%LOCALAPPDATA%\Programs\antigravity\Antigravity.exe"

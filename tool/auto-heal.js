@@ -30,6 +30,22 @@ function isAntigravityRunning() {
   }
 }
 
+function isWindowOpen() {
+  try {
+    const out = execSync('tasklist /FI "IMAGENAME eq language_server.exe" /NH', { stdio: 'pipe', windowsHide: true }).toString();
+    return out.toLowerCase().includes('language_server.exe');
+  } catch (_) {
+    return false;
+  }
+}
+
+function killTrayOrUnlocalizedProcess() {
+  try {
+    execSync('taskkill /F /IM Antigravity.exe /T', { stdio: 'ignore', windowsHide: true });
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 350);
+  } catch (_) {}
+}
+
 function isLocalized(asarPath) {
   if (!fs.existsSync(asarPath)) return false;
   try {
@@ -229,13 +245,24 @@ function patchInPlace() {
       cwd: workDir
     });
 
-    // 7. 安全覆盖（严禁在 Antigravity.exe 运行期间直接改写磁盘上的 app.asar，否则会导致 Electron 内存中的 ASAR 偏移量索引错位、按 Ctrl+R 时 preload.js 截断失效）
-    const isRunning = isAntigravityRunning();
-    if (isRunning && !process.argv.includes('--replace-live')) {
+    // 7. 安全覆盖：
+    // - 若用户已点右上角 X 关闭窗口（language_server.exe 已退出，仅剩系统托盘后台驻留的 Antigravity.exe 幽灵进程），
+    //   或当前为官方更新后的未汉化状态且由启动器（--from-launcher）拉起，则自动清理残留进程后直接写入 app.asar！
+    // - 若当前有活动窗口正在运行（如在终端内调用），为保护内存 ASAR 偏移索引，输出为预构建包 staged.asar。
+    const fromLauncher = process.argv.includes('--from-launcher');
+    const wasLocalized = isLocalized(ASAR_PATH);
+    if (isAntigravityRunning()) {
+      if (!isWindowOpen() || (fromLauncher && !wasLocalized)) {
+        killTrayOrUnlocalizedProcess();
+      }
+    }
+
+    const isStillRunning = isAntigravityRunning();
+    if (isStillRunning && !process.argv.includes('--replace-live')) {
       try {
         fs.copyFileSync(tempAsar, STAGED_ASAR);
       } catch (_) {}
-      console.log('[自动汉化自愈] 检测到 Antigravity 正在运行，为保护内存 ASAR 偏移索引，已生成预构建包 staged.asar（下次启动毫秒级替换生效）。');
+      console.log('[自动汉化自愈] 检测到 Antigravity 活动窗口正在运行，为保护内存 ASAR 偏移索引，已生成预构建包 staged.asar（关闭窗口重新启动时毫秒级替换生效）。');
       fs.rmSync(workDir, { recursive: true, force: true });
       return false;
     }
@@ -288,24 +315,43 @@ function heal() {
   }
 
   const forceHeal = process.argv.includes('--force');
+  const fromLauncher = process.argv.includes('--from-launcher');
   const alreadyLocalized = isLocalized(ASAR_PATH);
 
-  // 场景 0：若存在已预构建好的 staged.asar（上次因程序运行暂存的包），且当前主程序未运行，直接 5 毫秒替换生效！
-  if (fs.existsSync(STAGED_ASAR) && !forceHeal && alreadyLocalized && !isAntigravityRunning()) {
+  // 场景 0：若存在已预构建好的 staged.asar（且比当前 app.asar 更新）
+  if (fs.existsSync(STAGED_ASAR) && !forceHeal && isLocalized(STAGED_ASAR)) {
+    let stagedIsNewer = true;
     try {
-      fs.copyFileSync(STAGED_ASAR, ASAR_PATH);
-      fs.unlinkSync(STAGED_ASAR);
-      if (fs.existsSync(MARKER_FILE)) {
-        try { fs.unlinkSync(MARKER_FILE); } catch (_) {}
+      stagedIsNewer = fs.statSync(STAGED_ASAR).mtimeMs >= fs.statSync(ASAR_PATH).mtimeMs;
+    } catch (_) {}
+
+    if (stagedIsNewer) {
+      // 如果用户已关闭窗口（仅剩系统托盘驻留进程），或从启动器拉起以应用新包，自动终止残留进程以确保新包挂载生效
+      if (isAntigravityRunning() && (!isWindowOpen() || fromLauncher)) {
+        killTrayOrUnlocalizedProcess();
       }
-      console.log('[自动汉化自愈] 预构建包 staged.asar 已毫秒级替换生效！');
-      if (fs.existsSync(UNTRANSLATED_FILE)) {
-        spawnHarvester();
+      if (!isAntigravityRunning()) {
+        try {
+          if (!alreadyLocalized) {
+            try { fs.copyFileSync(ASAR_PATH, ASAR_BAK); } catch (_) {}
+          }
+          fs.copyFileSync(STAGED_ASAR, ASAR_PATH);
+          fs.unlinkSync(STAGED_ASAR);
+          if (fs.existsSync(MARKER_FILE)) {
+            try { fs.unlinkSync(MARKER_FILE); } catch (_) {}
+          }
+          console.log('[自动汉化自愈] 预构建包 staged.asar 已毫秒级替换生效！');
+          if (fs.existsSync(UNTRANSLATED_FILE)) {
+            spawnHarvester();
+          }
+          return;
+        } catch (_) {
+          return;
+        }
       }
-      return;
-    } catch (_) {
-      // 主程序仍在运行，继续保留 staged.asar 等待下次完全退出后启动
-      return;
+    } else {
+      // 若 app.asar 比 staged.asar 更新（说明官方刚推送了更新），删除过期的旧版 staged.asar，走下方全新解包构建流程
+      try { fs.unlinkSync(STAGED_ASAR); } catch (_) {}
     }
   }
   if (!alreadyLocalized || forceHeal) {

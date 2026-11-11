@@ -2,6 +2,16 @@
 (function() {
   const dictionary = {
     // [Auto-Harvested New Words]
+    'Background Tasks': '后台任务',
+    'Comment': '评论',
+    'Extensions': '扩展',
+    'Get package versions': '获取包版本',
+    'Invalid Worker outcome': '无效的 Worker 结果',
+    'Quote': '引用',
+    'Script execution failed': '脚本执行失败',
+    'Script return value exceeded maximum size (': '脚本返回值超出最大大小（',
+
+    // [Auto-Harvested New Words]
     'The WSL distro': 'WSL 发行版',
     'Antigravity opened on Windows instead.': '相反，反重力在 Windows 上打开。',
     'Sign in to ${rpLabel}': '登录到${rpLabel}',
